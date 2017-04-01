@@ -114,7 +114,7 @@ class CommitLog(seconds: Int, path: String, policy: ICommitLogFlushPolicy = OnRo
   }
 
   /** Finishes work with current file. */
-  def close(): Option[String] = {
+  def close(): Option[String] = this.synchronized{
     if (!firstRun) {
       resetCounters()
       currentCommitLogFileToPut.close()
