@@ -2,22 +2,18 @@ package com.bwsw.tstreamstransactionserver.netty.server.bookkeeperService.hierar
 
 import org.apache.curator.framework.CuratorFramework
 import org.apache.zookeeper.KeeperException
-import org.apache.zookeeper.data.Stat
 
 class RootNode(client: CuratorFramework,
                rootPath: String)
 {
 
   private def init(): RootNodeData = {
-    val metadataRetrieved: Stat = new Stat()
     scala.util.Try {
       client.getData
-        .storingStatIn(metadataRetrieved)
         .forPath(rootPath)
     }.map { data =>
       if (data.isEmpty)
         RootNodeData(
-          metadataRetrieved,
           Array.emptyByteArray,
           Array.emptyByteArray
         )
@@ -32,7 +28,6 @@ class RootNode(client: CuratorFramework,
           ids.splitAt(index)
 
         RootNodeData(
-          metadataRetrieved,
           firstID,
           secondID
         )
@@ -46,12 +41,7 @@ class RootNode(client: CuratorFramework,
             client.create()
               .forPath(rootPath, Array.emptyByteArray)
 
-            val metadataRetrieved: Stat =
-              client.checkExists()
-                .forPath(rootPath)
-
             RootNodeData(
-              metadataRetrieved,
               Array.emptyByteArray,
               Array.emptyByteArray
             )
@@ -76,14 +66,9 @@ class RootNode(client: CuratorFramework,
     val data = first ++ binaryIndex ++ second
 
     client.setData()
-      .withVersion(nodeData.metadata.getVersion)
       .forPath(rootPath, data)
 
-    val retrievedMetadata = client.checkExists()
-      .forPath(rootPath)
-
     nodeData = RootNodeData(
-      retrievedMetadata,
       first,
       second
     )

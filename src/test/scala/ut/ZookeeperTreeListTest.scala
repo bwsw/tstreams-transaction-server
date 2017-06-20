@@ -1,6 +1,6 @@
 package ut
 
-import com.bwsw.tstreamstransactionserver.netty.server.bookkeeperService.hierarchy.{RootNode, ZookeeperTreeLongList}
+import com.bwsw.tstreamstransactionserver.netty.server.bookkeeperService.hierarchy.ZookeeperTreeList
 import org.scalatest.{FlatSpec, Matchers}
 import util.Utils
 
@@ -12,14 +12,13 @@ class ZookeeperTreeListTest
   "asdas" should "asd" in {
     val (zkServer, zkClient) = Utils.startZkServerAndGetIt
 
-//    val rootNode = new RootNode(zkClient, "/test")
+    val longList = new ZookeeperTreeList(zkClient, "/test")
 
-    val longList = new ZookeeperTreeLongList(zkClient, "/test")
-    longList.createNode(1)
-    println(longList.lastRecordID)
-    println(longList.firstRecordID)
+    (0 to 1000) foreach{i =>
+      longList.createNode(i)
+    }
 
-    longList.createNode(5)
+    println(longList.getNodeNext(3))
     println(longList.lastRecordID)
     println(longList.firstRecordID)
 
