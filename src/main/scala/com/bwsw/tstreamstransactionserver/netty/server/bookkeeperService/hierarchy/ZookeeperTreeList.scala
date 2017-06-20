@@ -8,7 +8,7 @@ import scala.annotation.tailrec
 abstract class ZookeeperTreeList[T](client: CuratorFramework,
                                     rootPath: String)
   extends EntityPathConverter[T]
-    with  EntitySerializable[T]
+    with  EntityIDSerializable[T]
 {
   private val rootNode = new RootNode(client, rootPath)
   private def rootNodeData = rootNode.getData
