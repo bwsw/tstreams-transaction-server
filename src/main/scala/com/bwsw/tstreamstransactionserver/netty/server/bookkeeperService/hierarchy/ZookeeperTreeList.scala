@@ -103,6 +103,19 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
     }
   }
 
+  @tailrec
+  final def deleteLeftNodes(number: Long): Unit = {
+    if (number > 0L) {
+      val firstIDOpt = firstEntityID
+      firstIDOpt match {
+        case Some(firstID) =>
+          deleteNode(firstID)
+          deleteLeftNodes(number - 1)
+        case None => //do nothing
+      }
+    }
+  }
+
   def getNextNode(entity: T): Option[T] = {
     val path = buildPath(entity)
     val data = client.getData

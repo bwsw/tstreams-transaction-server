@@ -238,4 +238,52 @@ class ZookeeperTreeListTest
     zkClient.close()
     zkServer.close()
   }
+
+  it should "delete nodes from [head, n], n - some positive number" in {
+    val (zkServer, zkClient) = Utils.startZkServerAndGetIt
+
+    val treeListLong = new ZookeeperTreeListLong(zkClient, "/test")
+
+    val startNumber = 0
+    val maxNumbers  = 30
+
+    val ids = (startNumber to maxNumbers).toArray
+
+    ids.foreach(id =>
+      treeListLong.createNode(id)
+    )
+
+    val number = scala.util.Random.nextInt(maxNumbers)
+    treeListLong.deleteLeftNodes(number)
+
+    treeListLong.firstEntityID shouldBe Some(number)
+    treeListLong.lastEntityID  shouldBe Some(maxNumbers)
+
+    zkClient.close()
+    zkServer.close()
+  }
+
+  it should "delete nodes from [head, n], n - some positive number, which is greater than number of nodes list contains" in {
+    val (zkServer, zkClient) = Utils.startZkServerAndGetIt
+
+    val treeListLong = new ZookeeperTreeListLong(zkClient, "/test")
+
+    val startNumber = 0
+    val maxNumbers  = 15
+
+    val ids = (startNumber to maxNumbers).toArray
+
+    ids.foreach(id =>
+      treeListLong.createNode(id)
+    )
+
+    val number = maxNumbers + 1
+    treeListLong.deleteLeftNodes(number)
+
+    treeListLong.firstEntityID shouldBe None
+    treeListLong.lastEntityID  shouldBe None
+
+    zkClient.close()
+    zkServer.close()
+  }
 }
