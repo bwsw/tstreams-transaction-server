@@ -115,8 +115,6 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
   }
 
   def getPreviousNode(entity: T): Option[T] = {
-    val firstEntityIDOpt = firstEntityID
-
     @tailrec
     def go(node: Option[T]): Option[T] = {
       val nodeID = node.flatMap(id =>
@@ -128,17 +126,12 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
         node
     }
 
-    firstEntityIDOpt match {
-      case Some(_) =>
-        val lastEntityIDOpt = lastEntityID
-        val previousNode = go(firstEntityIDOpt)
-        if (previousNode == lastEntityIDOpt)
-          None
-        else
-          previousNode
-      case None =>
+    go(firstEntityID).flatMap(previousNodeID =>
+      if (lastEntityID.contains(previousNodeID))
         None
-    }
+      else
+        Some(previousNodeID)
+    )
   }
 
 
