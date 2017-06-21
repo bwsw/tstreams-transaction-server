@@ -190,8 +190,6 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
 
       if (nodeID.isDefined)
         go(nodeID)
-      else if (nodeID == node)
-        node
       else
         node
     }
