@@ -3,9 +3,12 @@ package com.bwsw.tstreamstransactionserver.netty.server.bookkeeperService.hierar
 import org.apache.curator.framework.CuratorFramework
 import org.apache.zookeeper.KeeperException
 
+private object RootNode {
+  val delimiterIndexFieldSize = java.lang.Integer.BYTES
+}
+
 class RootNode(client: CuratorFramework,
-               rootPath: String)
-{
+               rootPath: String) {
 
   private def init(): RootNodeData = {
     scala.util.Try {
@@ -21,11 +24,11 @@ class RootNode(client: CuratorFramework,
         val (delimiter, ids) =
           data.splitAt(RootNode.delimiterIndexFieldSize)
 
-        val index =
+        val indexToSplitIDs =
           java.nio.ByteBuffer.wrap(delimiter).getInt
 
         val (firstID, secondID) =
-          ids.splitAt(index)
+          ids.splitAt(indexToSplitIDs)
 
         RootNodeData(
           firstID,
@@ -52,6 +55,7 @@ class RootNode(client: CuratorFramework,
   private var nodeData = init()
 
   final def getData: RootNodeData = nodeData
+
   final def setFirstAndLastIDInRootNode(first: Array[Byte],
                                         second: Array[Byte]): Unit = {
     val buf = java.nio.ByteBuffer
@@ -73,9 +77,4 @@ class RootNode(client: CuratorFramework,
       second
     )
   }
-
-}
-
-private object RootNode {
-  val delimiterIndexFieldSize = java.lang.Integer.BYTES
 }

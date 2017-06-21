@@ -13,7 +13,7 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
   private val rootNode = new RootNode(client, rootPath)
   private def rootNodeData = rootNode.getData
 
-  def firstEntryID: Option[T] = {
+  def firstEntityID: Option[T] = {
     val binaryID = rootNodeData.firstID
     if (binaryID.isEmpty)
       None
@@ -21,7 +21,7 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
       Some(bytesToEntityID(binaryID))
   }
 
-  def lastEntryID: Option[T] = {
+  def lastEntityID: Option[T] = {
     val binaryID = rootNodeData.lastID
     if (binaryID.isEmpty)
       None
@@ -31,29 +31,28 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
 
   def createNode(entity: T): Unit = {
     val lastID = entityIDtoBytes(entity)
-    val path = s"$rootPath/${buildPath(entity)}"
+    val path = buildPath(entity)
 
-    if (rootNodeData.firstID.isEmpty) {
-      client.create
-        .creatingParentsIfNeeded()
-        .forPath(
-          path,
-          lastID
-        )
-      rootNode.setFirstAndLastIDInRootNode(
-        lastID, lastID
-      )
-    }
-    else if (bytesToEntityID(rootNodeData.lastID) != entity) {
+    def persistNode() = {
       client.create
         .creatingParentsIfNeeded()
         .forPath(
           path,
           Array.emptyByteArray
         )
+    }
+
+    if (rootNodeData.firstID.isEmpty) {
+      persistNode()
+      rootNode.setFirstAndLastIDInRootNode(
+        lastID, lastID
+      )
+    }
+    else if (bytesToEntityID(rootNodeData.lastID) != entity) {
+      persistNode()
 
       traverseToLastNode.foreach { id =>
-        val pathPreviousNode = s"$rootPath/${buildPath(id)}"
+        val pathPreviousNode = buildPath(id)
         client.setData()
           .forPath(
             pathPreviousNode,
@@ -67,37 +66,45 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
     }
   }
 
-  //  def updateNode(entity: Long, data: Array[Byte]): Unit = {
-  //    client.setData()
-  //      .forPath(
-  //        s"$rootPath/${buildPath(entity)}",
-  //        data
-  //      )
-  //  }
+  def deleteNode(id: T): Boolean = {
+    val firstIDOpt = firstEntityID
+    val lastIDOpt = lastEntityID
 
-
-  private def buildPath(entity: T) = {
-    entityToPath(entity).mkString("/")
-  }
-
-
-  private def traverseToLastNode: Option[T] = {
-    @tailrec
-    def go(node: Option[T]): Option[T] = {
-      val nodeID = node.flatMap(id =>
-        getNodeNext(id).filter(_ != id)
-      )
-
-      if (nodeID.isDefined)
-        go(nodeID)
-      else
-        node
+    firstIDOpt -> lastIDOpt match {
+      case (Some(firstID), Some(lastID)) =>
+        if (id == firstID && id == lastID) {
+          deleteOneNodeTreeList(id)
+        }
+        else {
+          if (id == firstID) {
+            val nextID = getNextNode(id).get
+            deleteFirstNode(firstID, nextID)
+          }
+          else if (id == lastID) {
+            val previousID = getPreviousNode(id).get
+            deleteLastNode(lastID, previousID)
+          }
+          else {
+            for {
+              nextID <- getNextNode(id)
+              previousID <- getPreviousNode(id)
+            } yield {
+              if (updateNode(previousID, nextID))
+                scala.util.Try(
+                  client.delete().forPath(buildPath(id))
+                ).isSuccess
+              else
+                false
+            }
+          }.getOrElse(false)
+        }
+      case _ =>
+        false
     }
-    go(lastEntryID)
   }
 
-  private def getNodeNext(entity: T): Option[T] = {
-    val path = s"$rootPath/${buildPath(entity)}"
+  def getNextNode(entity: T): Option[T] = {
+    val path = buildPath(entity)
     val data = client.getData
       .forPath(path)
 
@@ -107,4 +114,112 @@ abstract class ZookeeperTreeList[T](client: CuratorFramework,
       Some(bytesToEntityID(data))
   }
 
+  def getPreviousNode(entity: T): Option[T] = {
+    val firstEntityIDOpt = firstEntityID
+
+    @tailrec
+    def go(node: Option[T]): Option[T] = {
+      val nodeID = node.flatMap(id =>
+        getNextNode(id).filter(_ != entity)
+      )
+      if (nodeID.isDefined)
+        go(nodeID)
+      else
+        node
+    }
+
+    firstEntityIDOpt match {
+      case Some(_) =>
+        val lastEntityIDOpt = lastEntityID
+        val previousNode = go(firstEntityIDOpt)
+        if (previousNode == lastEntityIDOpt)
+          None
+        else
+          previousNode
+      case None =>
+        None
+    }
+  }
+
+
+  private def buildPath(entity: T) = {
+    s"$rootPath/${entityToPath(entity).mkString("/")}"
+  }
+
+  private def deleteFirstNode(firstEntityID: T, nextEntityID: T): Boolean = {
+    val newFirstID = entityIDtoBytes(nextEntityID)
+
+    val lastID = rootNodeData.lastID
+    rootNode.setFirstAndLastIDInRootNode(
+      newFirstID,
+      lastID
+    )
+
+    scala.util.Try(
+      client.delete().forPath(buildPath(firstEntityID))
+    ).isSuccess
+  }
+
+
+  private def deleteLastNode(lastEntityID: T, previousEntityID: T): Boolean = {
+    val newLastID = entityIDtoBytes(previousEntityID)
+
+    val firstID = rootNodeData.firstID
+    rootNode.setFirstAndLastIDInRootNode(
+      firstID,
+      newLastID
+    )
+
+    updateNode(previousEntityID, Array.emptyByteArray) &&
+      scala.util.Try(
+        client.delete().forPath(buildPath(lastEntityID))
+      ).isSuccess
+  }
+
+  private def deleteOneNodeTreeList(id: T): Boolean = {
+    rootNode.setFirstAndLastIDInRootNode(
+      Array.emptyByteArray,
+      Array.emptyByteArray
+    )
+
+    scala.util.Try(
+      client.delete().forPath(buildPath(id))
+    ).isSuccess
+  }
+
+
+  private def traverseToLastNode: Option[T] = {
+    @tailrec
+    def go(node: Option[T]): Option[T] = {
+      val nodeID = node.flatMap(id =>
+        getNextNode(id)
+      )
+
+      if (nodeID.isDefined)
+        go(nodeID)
+      else if (nodeID == node)
+        node
+      else
+        node
+    }
+    go(lastEntityID)
+  }
+
+  private def updateNode(nodeID: T, nextNodeID: T): Boolean = {
+    scala.util.Try(client.setData()
+      .forPath(
+        buildPath(nodeID),
+        entityIDtoBytes(nextNodeID)
+      )
+    ).isSuccess
+  }
+
+  private def updateNode(nodeID: T, nextNodeID: Array[Byte]): Boolean = {
+    scala.util.Try(client.setData()
+      .forPath(
+        buildPath(nodeID),
+        nextNodeID
+      )
+    ).isSuccess
+  }
 }
