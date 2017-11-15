@@ -31,8 +31,6 @@ import com.bwsw.tstreamstransactionserver.netty.server.db.rocks.RocksDbConnectio
 import com.bwsw.tstreamstransactionserver.netty.server.db.zk.ZookeeperStreamRepository
 import com.bwsw.tstreamstransactionserver.netty.server.singleNode.commitLogService.CommitLogService
 import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.SingleNodeRequestRouter
-import com.bwsw.tstreamstransactionserver.netty.server.storage.Storage
-import com.bwsw.tstreamstransactionserver.netty.server.storage.berkeley.SingleNodeBerkeleyStorage
 import com.bwsw.tstreamstransactionserver.netty.server.storage.rocks.MultiAndSingleNodeRockStorage
 import com.bwsw.tstreamstransactionserver.netty.server.subscriber.{OpenedTransactionNotifier, SubscriberNotifier, SubscribersObserver}
 import com.bwsw.tstreamstransactionserver.netty.server.transactionDataService.TransactionDataService
@@ -80,11 +78,6 @@ class SingleNodeServer(authenticationOpts: AuthenticationOptions,
       storageOpts,
       rocksStorageOpts
     )
-
-//  protected val storage: Storage =
-//    new SingleNodeBerkeleyStorage(
-//      storageOpts
-//    )
 
   private val zkStreamRepository: ZookeeperStreamRepository =
     zk.streamRepository(s"${storageOpts.streamZookeeperDirectory}")
