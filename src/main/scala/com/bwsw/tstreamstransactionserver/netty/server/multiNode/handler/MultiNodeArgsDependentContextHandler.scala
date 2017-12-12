@@ -1,11 +1,10 @@
 package com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler
 
-import java.util.concurrent.locks.ReentrantLock
-
 import com.bwsw.tstreamstransactionserver.exception.Throwable.ServerIsSlaveException
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.OrderedExecutionContextPool
 import com.bwsw.tstreamstransactionserver.netty.server.handler.ClientRequestHandler
+import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.apache.bookkeeper.client.BKException
 
@@ -19,50 +18,56 @@ abstract class MultiNodeArgsDependentContextHandler(override final val id: Byte,
   override final def handle(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]): Unit = {
-    if (message.isFireAndForgetMethod) {
-      handleFireAndForgetRequest(message, ctx, acc)
-    }
-    else {
-      handleRequest(message, ctx, acc)
+    tracer.withTracing(message) {
+      if (message.isFireAndForgetMethod) {
+        handleFireAndForgetRequest(message, ctx, acc)
+      }
+      else {
+        handleRequest(message, ctx, acc)
+      }
     }
   }
 
   private def handleFireAndForgetRequest(message: RequestMessage,
                                          ctx: ChannelHandlerContext,
                                          error: Option[Throwable]) = {
-    if (error.isEmpty) {
-      fireAndForget(message)
-    } else {
-      logUnsuccessfulProcessing(
-        name,
-        error.get,
-        message,
-        ctx
-      )
+    tracer.withTracing(message) {
+      if (error.isEmpty) {
+        fireAndForget(message)
+      } else {
+        logUnsuccessfulProcessing(
+          name,
+          error.get,
+          message,
+          ctx
+        )
+      }
     }
   }
 
   private def handleRequest(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]) = {
-    if (acc.isEmpty) {
-      val (result, context) = getResponse(message, ctx)
-      result.recover {
-        case error: ServerIsSlaveException =>
-        // do nothing
-        case error: BKException =>
-        // do nothing
-        case error =>
-          logUnsuccessfulProcessing(name, error, message, ctx)
-          val response =
-            createErrorResponse(error.getMessage)
-          sendResponse(message, response, ctx)
-      }(context)
-    } else {
-      val error = acc.get
-      logUnsuccessfulProcessing(name, error, message, ctx)
-      val response = createErrorResponse(error.getMessage)
-      sendResponse(message, response, ctx)
+    tracer.withTracing(message) {
+      if (acc.isEmpty) {
+        val (result, context) = getResponse(message, ctx)
+        result.recover {
+          case error: ServerIsSlaveException =>
+          // do nothing
+          case error: BKException =>
+          // do nothing
+          case error =>
+            logUnsuccessfulProcessing(name, error, message, ctx)
+            val response =
+              createErrorResponse(error.getMessage)
+            sendResponse(message, response, ctx)
+        }(context)
+      } else {
+        val error = acc.get
+        logUnsuccessfulProcessing(name, error, message, ctx)
+        val response = createErrorResponse(error.getMessage)
+        sendResponse(message, response, ctx)
+      }
     }
   }
 

@@ -1,12 +1,12 @@
 package com.bwsw.tstreamstransactionserver
 
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.common.CommonServerBuilder
-import com.bwsw.tstreamstransactionserver.options.{CommonOptions, SingleNodeServerOptions}
 import com.bwsw.tstreamstransactionserver.options.loader.PropertyFileLoader
 import com.bwsw.tstreamstransactionserver.options.loader.PropertyFileReader._
+import com.bwsw.tstreamstransactionserver.options.{CommonOptions, SingleNodeServerOptions}
 
 object CommonServerLauncher
- extends App {
+  extends App {
   val propertyFileLoader =
     PropertyFileLoader()
 
@@ -32,6 +32,7 @@ object CommonServerLauncher
     loadCommonPrefixesOptions(propertyFileLoader)
   val bookkeeperOptions =
     loadBookkeeperOptions(propertyFileLoader)
+  val tracingOptions: CommonOptions.TracingOptions = loadTracingOptions(propertyFileLoader)
 
   val builder =
     new CommonServerBuilder()
@@ -48,6 +49,7 @@ object CommonServerLauncher
     .withPackageTransmissionOptions(packageTransmissionOptions)
     .withCommonPrefixesOptions(commonPrefixesOptions)
     .withBookkeeperOptions(bookkeeperOptions)
+    .withTracingOptions(tracingOptions)
     .build()
 
   server.start()

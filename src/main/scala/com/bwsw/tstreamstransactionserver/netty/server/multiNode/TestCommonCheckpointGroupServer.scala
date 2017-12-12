@@ -3,6 +3,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.multiNode
 
 import com.bwsw.tstreamstransactionserver.netty.server.{Notifier, RocksWriter, TestRocksWriter}
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
 import com.bwsw.tstreamstransactionserver.rpc.{ConsumerTransaction, ProducerTransaction}
@@ -17,7 +18,8 @@ class TestCommonCheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                                       bookkeeperOptions: BookkeeperOptions,
                                       storageOpts: StorageOptions,
                                       rocksStorageOpts: RocksStorageOptions,
-                                      subscribersUpdateOptions: SubscriberUpdateOptions)
+                                      subscribersUpdateOptions: SubscriberUpdateOptions,
+                                      tracingOptions: TracingOptions)
   extends CommonCheckpointGroupServer(
     authenticationOpts,
     packageTransmissionOpts,
@@ -29,7 +31,8 @@ class TestCommonCheckpointGroupServer(authenticationOpts: AuthenticationOptions,
     bookkeeperOptions,
     storageOpts,
     rocksStorageOpts,
-    subscribersUpdateOptions){
+    subscribersUpdateOptions,
+    tracingOptions) {
 
   override protected lazy val rocksWriter: RocksWriter =
     new TestRocksWriter(

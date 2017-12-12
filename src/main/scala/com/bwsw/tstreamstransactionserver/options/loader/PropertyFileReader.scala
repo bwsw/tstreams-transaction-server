@@ -1,11 +1,12 @@
 package com.bwsw.tstreamstransactionserver.options.loader
 
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CheckpointGroupPrefixesOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
 import com.bwsw.tstreamstransactionserver.options.{CommitLogWriteSyncPolicy, IncompleteCommitLogReadPolicy, SingleNodeServerOptions}
 import org.rocksdb.CompressionType
 
+import scala.util.Try
 
 
 object PropertyFileReader {
@@ -80,7 +81,7 @@ object PropertyFileReader {
     )
   }
 
-  
+
   final def loadServerRocksStorageOptions(loader: PropertyFileLoader): RocksStorageOptions = {
     implicit val typeTag: Class[RocksStorageOptions] = classOf[RocksStorageOptions]
 
@@ -262,5 +263,18 @@ object PropertyFileReader {
       timeBetweenCreationOfLedgersMs,
       loadCheckpointGroupPrefixesOptions(loader)
     )
+  }
+
+
+  final def loadTracingOptions(loader: PropertyFileLoader): TracingOptions = {
+    implicit val typeTag: Class[TracingOptions] = classOf[TracingOptions]
+
+    val tracingEnabled = Try(loader.castCheck("tracing.enabled", prop => prop.toBoolean)).getOrElse(false)
+    if (tracingEnabled) {
+      val endpoint = loader.castCheck("tracing.endpoint", identity)
+
+      TracingOptions(tracingEnabled, endpoint)
+    } else
+      TracingOptions()
   }
 }

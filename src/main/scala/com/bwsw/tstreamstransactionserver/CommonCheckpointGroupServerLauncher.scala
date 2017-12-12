@@ -1,9 +1,9 @@
 package com.bwsw.tstreamstransactionserver
 
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.CommonCheckpointGroupServerBuilder
-import com.bwsw.tstreamstransactionserver.options.{CommonOptions, SingleNodeServerOptions}
 import com.bwsw.tstreamstransactionserver.options.loader.PropertyFileLoader
 import com.bwsw.tstreamstransactionserver.options.loader.PropertyFileReader._
+import com.bwsw.tstreamstransactionserver.options.{CommonOptions, SingleNodeServerOptions}
 
 object CommonCheckpointGroupServerLauncher
  extends App {
@@ -32,6 +32,7 @@ object CommonCheckpointGroupServerLauncher
     loadCommonPrefixesOptions(propertyFileLoader)
   val bookkeeperOptions =
     loadBookkeeperOptions(propertyFileLoader)
+  val tracingOptions: CommonOptions.TracingOptions = loadTracingOptions(propertyFileLoader)
 
   val builder =
     new CommonCheckpointGroupServerBuilder()
@@ -48,6 +49,7 @@ object CommonCheckpointGroupServerLauncher
     .withPackageTransmissionOptions(packageTransmissionOptions)
     .withCommonPrefixesOptions(commonPrefixesOptions)
     .withBookkeeperOptions(bookkeeperOptions)
+    .withTracingOptions(tracingOptions)
     .build()
 
   server.start()

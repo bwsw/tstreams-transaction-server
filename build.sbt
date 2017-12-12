@@ -43,7 +43,7 @@ publishArtifact in Test := false
 assemblyJarName in assembly := s"${name.value}-${version.value}.jar"
 
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", _ @ _*) =>
+  case PathList("META-INF", _@_*) =>
     MergeStrategy.discard
   case _ =>
     MergeStrategy.first
@@ -110,7 +110,10 @@ libraryDependencies ++= Seq(
     .exclude("org.slf4j", "slf4j-api"),
   ("org.apache.curator" % "curator-recipes" % "2.12.0")
     .exclude("log4j", "log4j")
-    .exclude("org.slf4j", "slf4j-api")
+    .exclude("org.slf4j", "slf4j-api"),
+
+  "io.zipkin.brave" % "brave" % "4.11.0",
+  "io.zipkin.reporter2" % "zipkin-sender-okhttp3" % "2.1.4"
 )
 
 dependencyOverrides += "org.slf4j" % "slf4j-api" % "1.7.25"
