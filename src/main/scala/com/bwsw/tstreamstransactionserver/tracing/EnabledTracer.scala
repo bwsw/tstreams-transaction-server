@@ -119,8 +119,13 @@ object EnabledTracer {
 
     private def invoke(requestId: Long, name: String): Span = {
       val requestSpan = requestSpans.getOrElse(requestId, startRequest(requestId))
-      val span = tracer.newChild(requestSpan.context()).name(name.toString).start()
-      spans(requestSpan) += name -> span
+      val spansForRequest = spans(requestSpan)
+      val parentSpan = Thread.currentThread().getStackTrace
+        .collectFirst { case s if spansForRequest.contains(s.toString) => spansForRequest(s.toString) }
+        .getOrElse(requestSpan)
+
+      val span = tracer.newChild(parentSpan.context()).name(name.toString).start()
+      spansForRequest += name -> span
 
       span
     }
