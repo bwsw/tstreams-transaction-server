@@ -181,50 +181,46 @@ class OpenTransactionHandler(server: TransactionServer,
         val promise = Promise[Boolean]()
         Future {
           tracer.withTracing(message) {
-            bookkeeperMaster.doOperationWithCurrentWriteLedger { ldg =>
-              tracer.withTracing(message) {
-                ldg match {
-                  case Left(throwable) =>
-                    promise.failure(throwable)
+            bookkeeperMaster.doOperationWithCurrentWriteLedger {
+              case Left(throwable) =>
+                promise.failure(throwable)
 
-                  case Right(ledgerHandler) =>
-                    val transactionId = server.getTransactionID
+              case Right(ledgerHandler) =>
+                val transactionId = server.getTransactionID
 
-                    val txn = Transaction(Some(
-                      ProducerTransaction(
-                        args.streamID,
-                        args.partition,
-                        transactionId,
-                        TransactionStates.Opened,
-                        quantity = 0,
-                        ttl = args.transactionTTLMs
-                      )), None
-                    )
+                val txn = Transaction(Some(
+                  ProducerTransaction(
+                    args.streamID,
+                    args.partition,
+                    transactionId,
+                    TransactionStates.Opened,
+                    quantity = 0,
+                    ttl = args.transactionTTLMs
+                  )), None
+                )
 
-                    val binaryTransaction = Protocol.PutTransaction.encodeRequest(
-                      TransactionService.PutTransaction.Args(txn)
-                    )
+                val binaryTransaction = Protocol.PutTransaction.encodeRequest(
+                  TransactionService.PutTransaction.Args(txn)
+                )
 
-                    val callback = new ReplyCallback(
-                      args.streamID,
-                      args.partition,
-                      transactionId,
-                      args.transactionTTLMs,
-                      message,
-                      ctx
-                    )
+                val callback = new ReplyCallback(
+                  args.streamID,
+                  args.partition,
+                  transactionId,
+                  args.transactionTTLMs,
+                  message,
+                  ctx
+                )
 
-                    val record = new Record(
-                      Frame.PutTransactionType.id.toByte,
-                      System.currentTimeMillis(),
-                      binaryTransaction
-                    ).toByteArray
+                val record = new Record(
+                  Frame.PutTransactionType.id.toByte,
+                  System.currentTimeMillis(),
+                  binaryTransaction
+                ).toByteArray
 
-                    tracer.withTracing(message) {
-                      ledgerHandler.asyncAddEntry(record, callback, promise)
-                    }
+                tracer.withTracing(message) {
+                  ledgerHandler.asyncAddEntry(record, callback, promise)
                 }
-              }
             }
           }
         }(context)
