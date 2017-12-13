@@ -21,6 +21,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metad
 import com.bwsw.tstreamstransactionserver.netty.server.batch.Frame
 import com.bwsw.tstreamstransactionserver.netty.server.commitLogService.ScheduledCommitLog
 import com.bwsw.tstreamstransactionserver.netty.server.handler.ArgsDependentContextHandler
+import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metadata.OpenTransactionHandler._
 import com.bwsw.tstreamstransactionserver.netty.server.subscriber.OpenedTransactionNotifier
 import com.bwsw.tstreamstransactionserver.netty.server.{OrderedExecutionContextPool, TransactionServer}
 import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage}
@@ -28,9 +29,8 @@ import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions.Authen
 import com.bwsw.tstreamstransactionserver.protocol.TransactionState
 import com.bwsw.tstreamstransactionserver.rpc.TransactionService.OpenTransaction
 import com.bwsw.tstreamstransactionserver.rpc._
+import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 import io.netty.channel.ChannelHandlerContext
-
-import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metadata.OpenTransactionHandler._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -61,56 +61,68 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   override protected def fireAndForget(message: RequestMessage): Unit = {
-    val args = descriptor.decodeRequest(message.body)
-    val context = getContext(args.streamID, args.partition)
-    Future {
-      val transactionID =
-        server.getTransactionID
+    tracer.withTracing(message) {
+      val args = descriptor.decodeRequest(message.body)
+      val context = getContext(args.streamID, args.partition)
+      Future {
+        val transactionID =
+          server.getTransactionID
 
-      process(args, transactionID)
+        process(args, transactionID)
 
-      notifier.notifySubscribers(
-        args.streamID,
-        args.partition,
-        transactionID,
-        count = 0,
-        TransactionState.Status.Opened,
-        args.transactionTTLMs,
-        authOptions.key,
-        isNotReliable = true
-      )
-    }(context)
+        notifier.notifySubscribers(
+          args.streamID,
+          args.partition,
+          transactionID,
+          count = 0,
+          TransactionState.Status.Opened,
+          args.transactionTTLMs,
+          authOptions.key,
+          isNotReliable = true
+        )
+      }(context)
+    }
+    tracer.finishRequest(message)
   }
 
   override protected def getResponse(message: RequestMessage, ctx: ChannelHandlerContext): (Future[_], ExecutionContext) = {
-    val args = descriptor.decodeRequest(message.body)
-    val context = orderedExecutionPool.pool(args.streamID, args.partition)
-    val result = Future {
-      val transactionID =
-        server.getTransactionID
+    val result = tracer.withTracing(message) {
+      val args = descriptor.decodeRequest(message.body)
+      val context = orderedExecutionPool.pool(args.streamID, args.partition)
+      val result = Future {
+        tracer.withTracing(message) {
+          val transactionID =
+            server.getTransactionID
 
-      process(args, transactionID)
+          process(args, transactionID)
 
-      val response = descriptor.encodeResponse(
-        TransactionService.OpenTransaction.Result(
-          Some(transactionID)
-        )
-      )
+          val response = descriptor.encodeResponse(
+            TransactionService.OpenTransaction.Result(
+              Some(transactionID)
+            )
+          )
 
-      sendResponse(message, response, ctx)
+          sendResponse(message, response, ctx)
 
-      notifier.notifySubscribers(
-        args.streamID,
-        args.partition,
-        transactionID,
-        count = 0,
-        TransactionState.Status.Opened,
-        args.transactionTTLMs,
-        authOptions.key,
-        isNotReliable = false
-      )
-    }(context)
-    (result, context)
+          notifier.notifySubscribers(
+            args.streamID,
+            args.partition,
+            transactionID,
+            count = 0,
+            TransactionState.Status.Opened,
+            args.transactionTTLMs,
+            authOptions.key,
+            isNotReliable = false
+          )
+        }
+
+        tracer.finishRequest(message)
+      }(context)
+
+      (result, context)
+    }
+
+    result
   }
 
   private def process(args: OpenTransaction.Args,

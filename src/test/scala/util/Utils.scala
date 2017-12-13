@@ -53,6 +53,7 @@ object Utils {
 
   private val zkLedgersRootPath = "/ledgers"
   private val zkBookiesAvailablePath = s"$zkLedgersRootPath/available"
+
   def startBookieServer(zkEndpoints: String, bookieNumber: Int): BookieServer = {
 
     def createBookieFolder() = {
@@ -87,6 +88,7 @@ object Utils {
       server.start()
       server
     }
+
     startBookie()
   }
 
@@ -115,6 +117,7 @@ object Utils {
   }
 
   private val rand = scala.util.Random
+
   def getRandomStream =
     new com.bwsw.tstreamstransactionserver.rpc.StreamValue {
       override val name: String = rand.nextInt(10000).toString
@@ -250,7 +253,7 @@ object Utils {
     val updatedBuilder = serverBuilder
       .withCommonRoleOptions(
         serverBuilder.getCommonRoleOptions.copy(
-          commonMasterPrefix =  zKCommonMasterPrefix,
+          commonMasterPrefix = zKCommonMasterPrefix,
           commonMasterElectionPrefix = s"/$uuid")
       )
       .withZookeeperOptions(
@@ -277,7 +280,8 @@ object Utils {
       updatedBuilder.getRocksStorageOptions,
       updatedBuilder.getCommitLogOptions,
       updatedBuilder.getPackageTransmissionOptions,
-      updatedBuilder.getSubscribersUpdateOptions
+      updatedBuilder.getSubscribersUpdateOptions,
+      updatedBuilder.getTracingOptions
     )
 
     val latch = new CountDownLatch(1)
@@ -341,7 +345,8 @@ object Utils {
       updatedBuilder.getRocksStorageOptions,
       updatedBuilder.getCommitLogOptions,
       updatedBuilder.getPackageTransmissionOptions,
-      updatedBuilder.getSubscribersUpdateOptions
+      updatedBuilder.getSubscribersUpdateOptions,
+      updatedBuilder.getTracingOptions
     )
 
     val latch = new CountDownLatch(1)
@@ -364,7 +369,6 @@ object Utils {
 
     new ZkSeverTxnServerTxnClients(transactionServer, clients, updatedBuilder)
   }
-
 
 
 }

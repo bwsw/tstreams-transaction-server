@@ -1,7 +1,7 @@
 package com.bwsw.tstreamstransactionserver.netty.server.multiNode.common
 
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
 
@@ -15,7 +15,8 @@ class CommonServerBuilder private(authenticationOpts: AuthenticationOptions,
                                   bookkeeperOpts: BookkeeperOptions,
                                   storageOpts: StorageOptions,
                                   rocksStorageOpts: RocksStorageOptions,
-                                  subscriberUpdateOpts: SubscriberUpdateOptions) {
+                                  subscriberUpdateOpts: SubscriberUpdateOptions,
+                                  tracingOpts: TracingOptions) {
 
   private val authenticationOptions = authenticationOpts
   private val packageTransmissionOptions = packageTransmissionOpts
@@ -28,6 +29,7 @@ class CommonServerBuilder private(authenticationOpts: AuthenticationOptions,
   private val storageOptions = storageOpts
   private val rocksStorageOptions = rocksStorageOpts
   private val subscribersUpdateOptions = subscriberUpdateOpts
+  private val tracingOptions = tracingOpts
 
   def this() = this(
     AuthenticationOptions(),
@@ -40,41 +42,45 @@ class CommonServerBuilder private(authenticationOpts: AuthenticationOptions,
     BookkeeperOptions(),
     StorageOptions(),
     RocksStorageOptions(),
-    SubscriberUpdateOptions()
+    SubscriberUpdateOptions(),
+    TracingOptions()
   )
 
   def withAuthenticationOptions(authenticationOptions: AuthenticationOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withPackageTransmissionOptions(packageTransmissionOptions: TransportOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withZookeeperOptions(zookeeperOptions: ZookeeperOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withBootstrapOptions(bootstrapOptions: BootstrapOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withCommonRoleOptions(commonRoleOptions: CommonRoleOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withCommonPrefixesOptions(commonPrefixesOptions: CommonPrefixesOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withCheckpointGroupRoleOptions(checkpointGroupRoleOptions: CheckpointGroupRoleOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withBookkeeperOptions(bookkeeperOptions: BookkeeperOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withServerStorageOptions(storageOptions: StorageOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withServerRocksStorageOptions(rocksStorageOptions: RocksStorageOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def withSubscribersUpdateOptions(subscribersUpdateOptions: SubscriberUpdateOptions) =
-    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions)
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
+
+  def withTracingOptions(tracingOptions: TracingOptions) =
+    new CommonServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, commonRoleOptions, commonPrefixesOptions, checkpointGroupRoleOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, subscribersUpdateOptions, tracingOptions)
 
   def build() = new CommonServer(
     authenticationOptions,
@@ -87,7 +93,8 @@ class CommonServerBuilder private(authenticationOpts: AuthenticationOptions,
     bookkeeperOptions,
     storageOptions,
     rocksStorageOptions,
-    subscribersUpdateOptions
+    subscribersUpdateOptions,
+    tracingOptions
   )
 
   def getAuthenticationOptions =
@@ -122,5 +129,7 @@ class CommonServerBuilder private(authenticationOpts: AuthenticationOptions,
 
   def getSubscribersUpdateOptions =
     subscribersUpdateOptions.copy()
+
+  def getTracingOptions = tracingOptions
 }
 

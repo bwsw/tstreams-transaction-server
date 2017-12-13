@@ -10,8 +10,10 @@ import com.bwsw.tstreamstransactionserver.netty.server.storage.rocks.MultiNodeRo
 import com.bwsw.tstreamstransactionserver.netty.server.transactionDataService.TransactionDataService
 import com.bwsw.tstreamstransactionserver.netty.server.zk.ZookeeperClient
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CheckpointGroupPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
+import com.bwsw.tstreamstransactionserver.tracing.Tracer
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.{ChannelOption, EventLoopGroup}
 import io.netty.channel.socket.ServerSocketChannel
@@ -26,8 +28,11 @@ class CheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                             checkpointGroupPrefixesOptions: CheckpointGroupPrefixesOptions,
                             bookkeeperOptions: BookkeeperOptions,
                             storageOpts: StorageOptions,
-                            rocksStorageOpts: RocksStorageOptions) {
+                            rocksStorageOpts: RocksStorageOptions,
+                            tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
+
+  Tracer.init(tracingOptions)
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

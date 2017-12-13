@@ -1,8 +1,8 @@
 package com.bwsw.tstreamstransactionserver.netty.server.multiNode.cg
 
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
-import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions._
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
+import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions._
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
 
 class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOptions,
@@ -13,7 +13,8 @@ class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOpt
                                            checkpointGroupPrefixesOpts: CheckpointGroupPrefixesOptions,
                                            bookkeeperOpts: BookkeeperOptions,
                                            storageOpts: StorageOptions,
-                                           rocksStorageOpts: RocksStorageOptions) {
+                                           rocksStorageOpts: RocksStorageOptions,
+                                           tracingOpts: TracingOptions) {
 
   private val authenticationOptions = authenticationOpts
   private val packageTransmissionOptions = packageTransmissionOpts
@@ -24,6 +25,7 @@ class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOpt
   private val bookkeeperOptions = bookkeeperOpts
   private val storageOptions = storageOpts
   private val rocksStorageOptions = rocksStorageOpts
+  private val tracingOptions = tracingOpts
 
   def this() = this(
     AuthenticationOptions(),
@@ -34,35 +36,39 @@ class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOpt
     CheckpointGroupPrefixesOptions(),
     BookkeeperOptions(),
     StorageOptions(),
-    RocksStorageOptions()
+    RocksStorageOptions(),
+    TracingOptions()
   )
 
   def withAuthenticationOptions(authenticationOptions: AuthenticationOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withPackageTransmissionOptions(packageTransmissionOptions: TransportOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withZookeeperOptions(zookeeperOptions: ZookeeperOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withBootstrapOptions(bootstrapOptions: BootstrapOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withCheckpointGroupRoleOptions(checkpointGroupRoleOptions: CheckpointGroupRoleOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withCheckpointGroupPrefixesOptions(checkpointGroupPrefixesOptions: CheckpointGroupPrefixesOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withBookkeeperOptions(bookkeeperOptions: BookkeeperOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withServerStorageOptions(storageOptions: StorageOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
   def withServerRocksStorageOptions(rocksStorageOptions: RocksStorageOptions) =
-    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions)
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
+
+  def withTracingOptions(tracingOptions: TracingOptions) =
+    new CheckpointGroupServerBuilder(authenticationOptions, packageTransmissionOptions, zookeeperOptions, bootstrapOptions, checkpointGroupRoleOptions, checkpointGroupPrefixesOptions, bookkeeperOptions, storageOptions, rocksStorageOptions, tracingOptions)
 
 
   def build() = new CheckpointGroupServer(
@@ -74,7 +80,8 @@ class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOpt
     checkpointGroupPrefixesOptions,
     bookkeeperOptions,
     storageOptions,
-    rocksStorageOptions
+    rocksStorageOptions,
+    tracingOptions
   )
 
   def getAuthenticationOptions =
@@ -103,4 +110,6 @@ class CheckpointGroupServerBuilder private(authenticationOpts: AuthenticationOpt
 
   def getRocksStorageOptions =
     rocksStorageOptions.copy()
+
+  def getTracingOptions = tracingOptions
 }

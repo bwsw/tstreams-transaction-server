@@ -3,6 +3,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.singleNode
 
 import com.bwsw.tstreamstransactionserver.netty.server.{Notifier, RocksWriter, TestRocksWriter}
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
 import com.bwsw.tstreamstransactionserver.rpc.{ConsumerTransaction, ProducerTransaction}
 
@@ -16,7 +17,8 @@ class TestSingleNodeServer(authenticationOpts: AuthenticationOptions,
                            rocksStorageOpts: RocksStorageOptions,
                            commitLogOptions: CommitLogOptions,
                            packageTransmissionOpts: TransportOptions,
-                           subscribersUpdateOptions: SubscriberUpdateOptions)
+                           subscribersUpdateOptions: SubscriberUpdateOptions,
+                           tracingOptions: TracingOptions)
   extends SingleNodeServer(
     authenticationOpts,
     zookeeperOpts,
@@ -27,7 +29,8 @@ class TestSingleNodeServer(authenticationOpts: AuthenticationOptions,
     rocksStorageOpts,
     commitLogOptions,
     packageTransmissionOpts,
-    subscribersUpdateOptions) {
+    subscribersUpdateOptions,
+    tracingOptions) {
 
   override protected lazy val rocksWriter: RocksWriter =
     new TestRocksWriter(

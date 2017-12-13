@@ -36,4 +36,12 @@ object CommonOptions {
                               retryDelayMs: Int = 500,
                               connectionTimeoutMs: Int = 10000)
 
+  /** The options are used for tracing
+    *
+    * @param enabled  if true, tracing is enabled
+    * @param endpoint OpenZipkin server address
+    */
+  case class TracingOptions(enabled: Boolean = false,
+                            endpoint: String = "127.0.0.1:9411")
+
 }

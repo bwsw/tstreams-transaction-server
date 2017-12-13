@@ -13,8 +13,10 @@ import com.bwsw.tstreamstransactionserver.netty.server.subscriber.{OpenedTransac
 import com.bwsw.tstreamstransactionserver.netty.server.transactionDataService.TransactionDataService
 import com.bwsw.tstreamstransactionserver.netty.server.zk.ZookeeperClient
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
+import com.bwsw.tstreamstransactionserver.tracing.Tracer
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.{ChannelOption, EventLoopGroup}
 import io.netty.channel.socket.ServerSocketChannel
@@ -31,8 +33,11 @@ class CommonServer(authenticationOpts: AuthenticationOptions,
                    bookkeeperOptions: BookkeeperOptions,
                    storageOpts: StorageOptions,
                    rocksStorageOpts: RocksStorageOptions,
-                   subscribersUpdateOptions: SubscriberUpdateOptions) {
+                   subscribersUpdateOptions: SubscriberUpdateOptions,
+                   tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
+
+  Tracer.init(tracingOptions)
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

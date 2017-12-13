@@ -50,6 +50,7 @@ object SingleNodeServerLauncher
     loadCommitLogOptions(propertyFileLoader)
   val subscribersUpdateOptions: SingleNodeServerOptions.SubscriberUpdateOptions =
     loadSubscribersUpdateOptions(propertyFileLoader)
+  val tracingOptions: CommonOptions.TracingOptions = loadTracingOptions(propertyFileLoader)
 
   val builder = new SingleNodeServerBuilder()
   val server = builder
@@ -63,6 +64,7 @@ object SingleNodeServerLauncher
     .withZookeeperOptions(zookeeperOptions)
     .withPackageTransmissionOptions(packageTransmissionOptions)
     .withCommitLogOptions(commitLogOptions)
+    .withTracingOptions(tracingOptions)
     .build()
 
   server.start()
