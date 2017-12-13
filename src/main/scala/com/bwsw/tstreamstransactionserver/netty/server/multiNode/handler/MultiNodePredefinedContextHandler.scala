@@ -3,6 +3,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler
 import com.bwsw.tstreamstransactionserver.exception.Throwable.ServerIsSlaveException
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.handler.ClientRequestHandler
+import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.apache.bookkeeper.client.BKException
 
@@ -16,11 +17,11 @@ abstract class MultiNodePredefinedContextHandler(override final val id: Byte,
   override final def handle(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]): Unit = {
-    if (message.isFireAndForgetMethod) {
-      handleFireAndForgetRequest(message, ctx, acc)
-    }
-    else {
-      handleRequest(message, ctx, acc)
+    tracer.withTracing(message) {
+      if (message.isFireAndForgetMethod)
+        handleFireAndForgetRequest(message, ctx, acc)
+      else
+        handleRequest(message, ctx, acc)
     }
   }
 

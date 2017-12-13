@@ -62,7 +62,7 @@ class SingleNodeServer(authenticationOpts: AuthenticationOptions,
   //  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions)
+  Tracer.init(tracingOptions, "TTS-S")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

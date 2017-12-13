@@ -19,55 +19,49 @@ abstract class MultiNodeArgsDependentContextHandler(override final val id: Byte,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]): Unit = {
     tracer.withTracing(message) {
-      if (message.isFireAndForgetMethod) {
+      if (message.isFireAndForgetMethod)
         handleFireAndForgetRequest(message, ctx, acc)
-      }
-      else {
+      else
         handleRequest(message, ctx, acc)
-      }
     }
   }
 
   private def handleFireAndForgetRequest(message: RequestMessage,
                                          ctx: ChannelHandlerContext,
                                          error: Option[Throwable]) = {
-    tracer.withTracing(message) {
-      if (error.isEmpty) {
-        fireAndForget(message)
-      } else {
-        logUnsuccessfulProcessing(
-          name,
-          error.get,
-          message,
-          ctx
-        )
-      }
+    if (error.isEmpty) {
+      fireAndForget(message)
+    } else {
+      logUnsuccessfulProcessing(
+        name,
+        error.get,
+        message,
+        ctx
+      )
     }
   }
 
   private def handleRequest(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]) = {
-    tracer.withTracing(message) {
-      if (acc.isEmpty) {
-        val (result, context) = getResponse(message, ctx)
-        result.recover {
-          case error: ServerIsSlaveException =>
-          // do nothing
-          case error: BKException =>
-          // do nothing
-          case error =>
-            logUnsuccessfulProcessing(name, error, message, ctx)
-            val response =
-              createErrorResponse(error.getMessage)
-            sendResponse(message, response, ctx)
-        }(context)
-      } else {
-        val error = acc.get
-        logUnsuccessfulProcessing(name, error, message, ctx)
-        val response = createErrorResponse(error.getMessage)
-        sendResponse(message, response, ctx)
-      }
+    if (acc.isEmpty) {
+      val (result, context) = getResponse(message, ctx)
+      result.recover {
+        case _: ServerIsSlaveException =>
+        // do nothing
+        case _: BKException =>
+        // do nothing
+        case error =>
+          logUnsuccessfulProcessing(name, error, message, ctx)
+          val response =
+            createErrorResponse(error.getMessage)
+          sendResponse(message, response, ctx)
+      }(context)
+    } else {
+      val error = acc.get
+      logUnsuccessfulProcessing(name, error, message, ctx)
+      val response = createErrorResponse(error.getMessage)
+      sendResponse(message, response, ctx)
     }
   }
 

@@ -19,24 +19,25 @@
 
 package com.bwsw.tstreamstransactionserver.tracing
 
-import brave.{Span, Tracing}
-import com.bwsw.tstreamstransactionserver.netty.Protocol.OpenTransaction
+import com.bwsw.tstreamstransactionserver.netty.Protocol.{OpenTransaction, PutTransactionData}
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import zipkin2.reporter.AsyncReporter
 import zipkin2.reporter.okhttp3.OkHttpSender
-
-import scala.collection.concurrent.TrieMap
 
 /** Performs tracing
   *
   * @param endpoint OpenZipkin server address
   * @author Pavel Tomskikh
   */
-class EnabledTracer(endpoint: String) extends Tracer {
+class EnabledTracer(endpoint: String, serviceName: String) extends Tracer {
   private val sender = OkHttpSender.create(s"http://$endpoint/api/v2/spans")
   private val reporter = AsyncReporter.create(sender)
-  private val tracers = Set(OpenTransaction).map(method =>
-    method.methodID -> new EnabledTracer.PerMethodTracer(sender, reporter, s"TTS-${method.name}")).toMap
+  private val tracers = Set(
+    OpenTransaction,
+    PutTransactionData)
+    .map(method =>
+      method.methodID -> new EnabledTracer.PerMethodTracer(sender, reporter, s"$serviceName-${method.name}"))
+    .toMap
 
 
   override def withTracing[T](request: RequestMessage, name: => String = EnabledTracer.getStackTraceElement.toString)
@@ -59,6 +60,12 @@ class EnabledTracer(endpoint: String) extends Tracer {
     reporter.close()
     sender.close()
   }
+
+  override def invoke(request: RequestMessage, name: => String): Unit =
+    tracers.get(request.methodId).foreach(_.invoke(request, name))
+
+  override def finish(request: RequestMessage, name: => String): Unit =
+    tracers.get(request.methodId).foreach(_.finish(request, name))
 }
 
 
@@ -75,67 +82,47 @@ object EnabledTracer {
 
 
   private class PerMethodTracer(sender: OkHttpSender, reporter: AsyncReporter[zipkin2.Span], serviceName: String) extends Tracer {
-    private val tracing = Tracing.newBuilder()
-      .spanReporter(reporter)
-      .localServiceName(serviceName)
-      .build()
-    private val tracer = tracing.tracer()
-    private val requestSpans = TrieMap.empty[Long, Span]
-    private val spans = TrieMap.empty[Span, TrieMap[String, Span]]
+    private val asyncTracer = new AsyncTracer(sender, reporter, serviceName)
 
     override def withTracing[T](request: RequestMessage, name: => String = EnabledTracer.getStackTraceElement.toString)
                                (traced: => T): T = {
       val methodName = name
-      invoke(request.id, methodName)
+      invoke(request, methodName)
       val result = traced
-      finish(request.id, methodName)
+      finish(request, methodName)
 
       result
     }
 
-    override def startRequest(request: RequestMessage): Unit = startRequest(request.id)
+    override def startRequest(request: RequestMessage): Unit = {
+      val timestamp = Clock.currentTimeMicroseconds
+      asyncTracer.startRequest(request, timestamp)
+    }
 
     override def finishRequest(request: RequestMessage): Unit = {
-      requestSpans.get(request.id).filter(span =>
-        spans.get(span).forall(_.isEmpty))
-        .foreach(_.finish())
+      val timestamp = Clock.currentTimeMicroseconds
+      asyncTracer.finishRequest(request, timestamp)
     }
 
-    override def close(): Unit = tracing.close()
+    override def close(): Unit =
+      asyncTracer.close()
 
-    /** Reports request handling started
-      *
-      * @param requestId request id
-      * @return created span
-      */
-    private def startRequest(requestId: Long): Span = {
-      val span = tracer.newTrace().name(s"request-$requestId").start()
-      requestSpans += requestId -> span
-      spans += span -> TrieMap.empty
-
-      span
+    override def invoke(request: RequestMessage, name: => String): Unit = {
+      val timestamp = Clock.currentTimeMicroseconds
+      val stackTrace = Thread.currentThread().getStackTrace
+      asyncTracer.invoke(request, name, timestamp, stackTrace)
     }
 
-
-    private def invoke(requestId: Long, name: String): Span = {
-      val requestSpan = requestSpans.getOrElse(requestId, startRequest(requestId))
-      val spansForRequest = spans(requestSpan)
-      val parentSpan = Thread.currentThread().getStackTrace
-        .collectFirst { case s if spansForRequest.contains(s.toString) => spansForRequest(s.toString) }
-        .getOrElse(requestSpan)
-
-      val span = tracer.newChild(parentSpan.context()).name(name.toString).start()
-      spansForRequest += name -> span
-
-      span
+    override def finish(request: RequestMessage, name: => String): Unit = {
+      val timestamp = Clock.currentTimeMicroseconds
+      asyncTracer.finish(request, name, timestamp)
     }
+  }
 
-    private def finish(requestId: Long, name: String): Unit = {
-      requestSpans.get(requestId).foreach(requestSpan =>
-        spans.get(requestSpan)
-          .foreach(_.remove(name)
-            .foreach(_.finish())))
-    }
+  object Clock {
+    private val start = System.currentTimeMillis() * 1000 - System.nanoTime() / 1000
+
+    def currentTimeMicroseconds: Long = start + System.nanoTime() / 1000
   }
 
 }

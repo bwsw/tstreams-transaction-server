@@ -37,7 +37,7 @@ class CommonCheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                                   tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions)
+  Tracer.init(tracingOptions, "TTS-M")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

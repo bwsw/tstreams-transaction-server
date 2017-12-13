@@ -3,6 +3,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.handler
 import com.bwsw.tstreamstransactionserver.exception.Throwable.TokenInvalidException
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.authService.AuthService
+import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -15,29 +16,31 @@ class AuthHandler(nextHandler: RequestHandler,
   override def handle(message: RequestMessage,
                       ctx: ChannelHandlerContext,
                       acc: Option[Throwable]): Unit = {
-    if (acc.isDefined) {
-      if (message.isFireAndForgetMethod) {
-        if (logger.isDebugEnabled())
-          logger.debug(s"Client [${ctx.channel().remoteAddress().toString}, " +
-            s"request id: ${message.id}]", acc.get)
-      }
-      else {
-        nextHandler.handle(message, ctx, acc)
-      }
-    } else {
-      val isValid = authService.isValid(message.token)
-      if (isValid)
-        nextHandler.handle(message, ctx, acc)
-      else {
-        if (logger.isDebugEnabled())
-          logger.debug(s"Client [${ctx.channel().remoteAddress().toString}, request id: ${message.id}] " +
-            s"Token ${message.token} is not valid")
-        if (!message.isFireAndForgetMethod) {
-          nextHandler.handle(
-            message,
-            ctx,
-            Some(new TokenInvalidException)
-          )
+    tracer.withTracing(message) {
+      if (acc.isDefined) {
+        if (message.isFireAndForgetMethod) {
+          if (logger.isDebugEnabled())
+            logger.debug(s"Client [${ctx.channel().remoteAddress().toString}, " +
+              s"request id: ${message.id}]", acc.get)
+        }
+        else {
+          nextHandler.handle(message, ctx, acc)
+        }
+      } else {
+        val isValid = authService.isValid(message.token)
+        if (isValid)
+          nextHandler.handle(message, ctx, acc)
+        else {
+          if (logger.isDebugEnabled())
+            logger.debug(s"Client [${ctx.channel().remoteAddress().toString}, request id: ${message.id}] " +
+              s"Token ${message.token} is not valid")
+          if (!message.isFireAndForgetMethod) {
+            nextHandler.handle(
+              message,
+              ctx,
+              Some(new TokenInvalidException)
+            )
+          }
         }
       }
     }
