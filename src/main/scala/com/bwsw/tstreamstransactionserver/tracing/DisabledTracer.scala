@@ -22,7 +22,7 @@ package com.bwsw.tstreamstransactionserver.tracing
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 
 /**
-  * Doesn't tracing
+  * Doesn't trace
   *
   * @author Pavel Tomskikh
   */

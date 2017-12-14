@@ -4,6 +4,7 @@ import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.handler.{IntermediateRequestHandler, RequestHandler}
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.bookkeperService.BookkeeperWriter
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.commitLogService.CommitLogService
+import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener
 
@@ -42,8 +43,9 @@ class ReadAllowedOperationHandler(nextHandler: RequestHandler,
   override def handle(message: RequestMessage,
                       ctx: ChannelHandlerContext,
                       error: Option[Throwable]): Unit = {
-    if (canPerformReadOperation) {
-      nextHandler.handle(message, ctx, error)
+    tracer.withTracing(message) {
+      if (canPerformReadOperation)
+        nextHandler.handle(message, ctx, error)
     }
   }
 }

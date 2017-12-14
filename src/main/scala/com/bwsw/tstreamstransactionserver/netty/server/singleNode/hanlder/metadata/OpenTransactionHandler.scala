@@ -65,21 +65,24 @@ class OpenTransactionHandler(server: TransactionServer,
       val args = descriptor.decodeRequest(message.body)
       val context = getContext(args.streamID, args.partition)
       Future {
-        val transactionID =
-          server.getTransactionID
+        tracer.withTracing(message) {
+          val transactionID =
+            server.getTransactionID
 
-        process(args, transactionID)
+          process(args, transactionID, message)
 
-        notifier.notifySubscribers(
-          args.streamID,
-          args.partition,
-          transactionID,
-          count = 0,
-          TransactionState.Status.Opened,
-          args.transactionTTLMs,
-          authOptions.key,
-          isNotReliable = true
-        )
+          notifier.notifySubscribers(
+            args.streamID,
+            args.partition,
+            transactionID,
+            count = 0,
+            TransactionState.Status.Opened,
+            args.transactionTTLMs,
+            authOptions.key,
+            isNotReliable = true,
+            message
+          )
+        }
       }(context)
     }
     tracer.finishRequest(message)
@@ -94,7 +97,7 @@ class OpenTransactionHandler(server: TransactionServer,
           val transactionID =
             server.getTransactionID
 
-          process(args, transactionID)
+          process(args, transactionID, message)
 
           val response = descriptor.encodeResponse(
             TransactionService.OpenTransaction.Result(
@@ -112,7 +115,8 @@ class OpenTransactionHandler(server: TransactionServer,
             TransactionState.Status.Opened,
             args.transactionTTLMs,
             authOptions.key,
-            isNotReliable = false
+            isNotReliable = false,
+            message
           )
         }
 
@@ -126,26 +130,28 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   private def process(args: OpenTransaction.Args,
-                      transactionId: Long): Unit = {
+                      transactionId: Long,
+                      message: RequestMessage): Unit = {
+    tracer.withTracing(message) {
+      val txn = Transaction(Some(
+        ProducerTransaction(
+          args.streamID,
+          args.partition,
+          transactionId,
+          TransactionStates.Opened,
+          quantity = 0,
+          ttl = args.transactionTTLMs
+        )), None
+      )
 
-    val txn = Transaction(Some(
-      ProducerTransaction(
-        args.streamID,
-        args.partition,
-        transactionId,
-        TransactionStates.Opened,
-        quantity = 0,
-        ttl = args.transactionTTLMs
-      )), None
-    )
+      val binaryTransaction = Protocol.PutTransaction.encodeRequest(
+        TransactionService.PutTransaction.Args(txn)
+      )
 
-    val binaryTransaction = Protocol.PutTransaction.encodeRequest(
-      TransactionService.PutTransaction.Args(txn)
-    )
-
-    scheduledCommitLog.putData(
-      Frame.PutTransactionType.id.toByte,
-      binaryTransaction
-    )
+      scheduledCommitLog.putData(
+        Frame.PutTransactionType.id.toByte,
+        binaryTransaction
+      )
+    }
   }
 }

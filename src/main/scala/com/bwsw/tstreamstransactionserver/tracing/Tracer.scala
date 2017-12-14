@@ -47,6 +47,10 @@ trait Tracer {
     */
   def startRequest(request: RequestMessage): Unit = {}
 
+  def invoke(request: RequestMessage, name: => String): Unit = {}
+
+  def finish(request: RequestMessage, name: => String): Unit = {}
+
   /** Reports request handling started if tracing enabled and request should be traced
     *
     * @param request request
@@ -67,10 +71,10 @@ object Tracer {
     * @param options tracer options
     * @throws IllegalStateException if tracer already initialized
     */
-  def init(options: TracingOptions): Unit = {
+  def init(options: TracingOptions, serviceName: String = "TTS"): Unit = {
     if (initialized) throw new IllegalStateException("Tracer already initialized")
     if (options.enabled) {
-      _tracer = new EnabledTracer(options.endpoint)
+      _tracer = new EnabledTracer(options.endpoint, serviceName)
       initialized = true
     }
   }

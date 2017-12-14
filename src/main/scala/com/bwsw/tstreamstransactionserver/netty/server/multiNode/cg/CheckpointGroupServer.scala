@@ -32,7 +32,7 @@ class CheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                             tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions)
+  Tracer.init(tracingOptions, "TTS-CG")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

@@ -20,6 +20,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 private object OpenTransactionHandler {
   val descriptor = Protocol.OpenTransaction
+  private val fireAndForgetLedger = s"${classOf[OpenTransactionHandler]}.fireAndForget.ledgerHandler.asyncAddEntry()"
+  private val getResponseLedger = s"${classOf[OpenTransactionHandler]}.getResponse.ledgerHandler.asyncAddEntry()"
 }
 
 class OpenTransactionHandler(server: TransactionServer,
@@ -47,6 +49,7 @@ class OpenTransactionHandler(server: TransactionServer,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
+      tracer.finish(message, OpenTransactionHandler.getResponseLedger)
       tracer.withTracing(message) {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
@@ -90,6 +93,7 @@ class OpenTransactionHandler(server: TransactionServer,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
+      tracer.finish(message, OpenTransactionHandler.fireAndForgetLedger)
       tracer.withTracing(message) {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
@@ -158,9 +162,8 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.withTracing(message) {
-                  ledgerHandler.asyncAddEntry(record, callback, promise)
-                }
+                tracer.invoke(message, OpenTransactionHandler.fireAndForgetLedger)
+                ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }
         }(context)
@@ -218,9 +221,8 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.withTracing(message) {
-                  ledgerHandler.asyncAddEntry(record, callback, promise)
-                }
+                tracer.invoke(message, OpenTransactionHandler.getResponseLedger)
+                ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }
         }(context)
