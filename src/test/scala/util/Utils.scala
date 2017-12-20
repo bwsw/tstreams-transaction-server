@@ -76,6 +76,7 @@ object Utils {
         .setJournalDirName(bookieFolder)
         .setLedgerDirNames(Array(bookieFolder))
         .setAllowLoopback(true)
+        .setJournalFlushWhenQueueEmpty(true)
 
       serverConfig
         .setZkLedgersRootPath(zkLedgersRootPath)
