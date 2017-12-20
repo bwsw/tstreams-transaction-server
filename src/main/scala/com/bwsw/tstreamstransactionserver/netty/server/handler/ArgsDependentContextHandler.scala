@@ -2,7 +2,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.handler
 
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.OrderedExecutionContextPool
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}

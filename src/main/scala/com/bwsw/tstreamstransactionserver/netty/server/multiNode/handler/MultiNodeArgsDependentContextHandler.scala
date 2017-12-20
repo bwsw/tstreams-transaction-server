@@ -4,7 +4,7 @@ import com.bwsw.tstreamstransactionserver.exception.Throwable.ServerIsSlaveExcep
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.OrderedExecutionContextPool
 import com.bwsw.tstreamstransactionserver.netty.server.handler.ClientRequestHandler
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.apache.bookkeeper.client.BKException
 

@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{Executors, PriorityBlockingQueue, TimeUnit}
 
 import com.bwsw.commitlog.filesystem.{CommitLogCatalogue, CommitLogFile, CommitLogStorage}
-import com.bwsw.tstreamstransactionserver.{ExecutionContextGrid, SinglePoolExecutionContextGrid}
 import com.bwsw.tstreamstransactionserver.configProperties.ServerExecutionContextGrids
 import com.bwsw.tstreamstransactionserver.netty.server._
 import com.bwsw.tstreamstransactionserver.netty.server.commitLogService._
@@ -38,7 +37,8 @@ import com.bwsw.tstreamstransactionserver.netty.server.zk.ZookeeperClient
 import com.bwsw.tstreamstransactionserver.options.CommonOptions
 import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer
+import com.bwsw.tstreamstransactionserver.{ExecutionContextGrid, SinglePoolExecutionContextGrid}
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.socket.ServerSocketChannel
@@ -62,7 +62,7 @@ class SingleNodeServer(authenticationOpts: AuthenticationOptions,
   //  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions, "TTS-S")
+  ServerTracer.init(tracingOptions, "TTS-S")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

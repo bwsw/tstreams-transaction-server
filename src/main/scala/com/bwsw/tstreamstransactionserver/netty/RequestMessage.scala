@@ -20,6 +20,7 @@
 
 package com.bwsw.tstreamstransactionserver.netty
 
+import com.bwsw.tstreamstransactionserver.tracing.TracingHeaders
 import io.netty.buffer.{ByteBuf, ByteBufAllocator}
 
 
@@ -37,32 +38,26 @@ case class RequestMessage(id: Long,
                           body: Array[Byte],
                           token: Int,
                           methodId: Byte,
-                          isFireAndForgetMethod: Boolean) {
+                          isFireAndForgetMethod: Boolean,
+                          tracingInfo: Option[TracingHeaders] = None) {
   /** Serializes a message. */
   def toByteArray: Array[Byte] = {
-    val size = {
-      RequestMessage.headerFieldSize +
-        RequestMessage.lengthFieldSize +
-        body.length
-    }
-
-    val isFireAndForgetMethodToByte = {
-      if (isFireAndForgetMethod)
-        1: Byte
-      else
-        0: Byte
-    }
-
+    val tracingBytes = tracingInfo.map(_.toByteArray)
+    val length = tracingBytes.map(_.length).getOrElse(0) + bodyLength
     val buffer = java.nio.ByteBuffer
       .allocate(size)
       .putLong(id) //0-8
       .put(thriftProtocol) //8-9
       .putInt(token) //9-13
       .put(methodId) //13-14
-      .put(isFireAndForgetMethodToByte) //14-15
-      .putInt(bodyLength) //15-19
-      .put(body) //20-size
-    buffer.flip()
+      .put(flags) //14-15
+      .putInt(length) //15-19
+
+    tracingBytes.foreach(buffer.put)
+
+    buffer
+      .put(body)
+      .flip()
 
     if (buffer.hasArray) {
       buffer.array()
@@ -75,28 +70,36 @@ case class RequestMessage(id: Long,
   }
 
   def toByteBuf(byteBufAllocator: ByteBufAllocator): ByteBuf = {
-    val size = {
-      RequestMessage.headerFieldSize +
-        RequestMessage.lengthFieldSize +
-        body.length
-    }
+    val tracingBytes = tracingInfo.map(_.toByteArray)
+    val length = tracingBytes.map(_.length).getOrElse(0) + bodyLength
 
-    val isFireAndForgetMethodToByte = {
-      if (isFireAndForgetMethod)
-        1: Byte
-      else
-        0: Byte
-    }
-
-    byteBufAllocator
+    val buffer = byteBufAllocator
       .buffer(size, size)
       .writeLong(id)
       .writeByte(thriftProtocol)
       .writeInt(token)
       .writeByte(methodId)
-      .writeByte(isFireAndForgetMethodToByte)
-      .writeInt(bodyLength)
-      .writeBytes(body)
+      .writeByte(flags)
+      .writeInt(length)
+
+    tracingBytes.foreach(buffer.writeBytes)
+
+    buffer.writeBytes(body)
+  }
+
+  private def size = RequestMessage.headerFieldSize +
+    RequestMessage.lengthFieldSize +
+    body.length +
+    tracingInfo.map(_ => TracingHeaders.sizeInBytes).getOrElse(0)
+
+  private def flags: Byte = {
+    var flags = 0
+    if (isFireAndForgetMethod)
+      flags |= RequestMessage.isFireAndForgetFlag
+    if (tracingInfo.isDefined)
+      flags |= RequestMessage.isTracedFlag
+
+    flags.toByte
   }
 }
 
@@ -106,30 +109,40 @@ object RequestMessage {
       java.lang.Byte.BYTES + //protocol
       java.lang.Integer.BYTES + //token
       java.lang.Byte.BYTES + //method
-      java.lang.Byte.BYTES //isFireAndForgetMethod
+      java.lang.Byte.BYTES //flags
     ).toByte
   val lengthFieldSize = java.lang.Integer.BYTES //length
+
+  private val isTracedFlag: Byte = 1
+  private val isFireAndForgetFlag: Byte = 2
 
   /** Deserializes a binary to message. */
   def fromByteArray(bytes: Array[Byte]): RequestMessage = {
     val buffer = java.nio.ByteBuffer.wrap(bytes)
-    val id = buffer.getLong
-    val protocol = buffer.get
-    val token = buffer.getInt
+    val id = buffer.getLong()
+    val protocol = buffer.get()
+    val token = buffer.getInt()
     val method = buffer.get()
-    val isFireAndForgetMethod = {
-      if (buffer.get() == (1: Byte))
-        true
-      else
-        false
-    }
-    val length = buffer.getInt
+    val flags = buffer.get()
+    var length = buffer.getInt()
+
+    val tracingInfo =
+      if (isTraced(flags)) {
+        val bytes = new Array[Byte](TracingHeaders.sizeInBytes)
+        buffer.get(bytes)
+        length -= TracingHeaders.sizeInBytes
+
+        Some(TracingHeaders.fromByteArray(bytes))
+      }
+      else None
+
     val message = {
-      val bytes = new Array[Byte](buffer.limit() - headerFieldSize - lengthFieldSize)
+      val bytes = new Array[Byte](length)
       buffer.get(bytes)
       bytes
     }
-    RequestMessage(id, length, protocol, message, token, method, isFireAndForgetMethod)
+
+    RequestMessage(id, length, protocol, message, token, method, isFireAndForgetMethod(flags), tracingInfo)
   }
 
   def fromByteBuf(buf: ByteBuf): RequestMessage = {
@@ -137,25 +150,37 @@ object RequestMessage {
     val protocol = buf.readByte()
     val token = buf.readInt()
     val method = buf.readByte()
-    val isFireAndForgetMethod = {
-      if (buf.readByte() == (1: Byte))
-        true
-      else
-        false
-    }
-    val length = buf.readInt()
+    val flags = buf.readByte()
+    var length = buf.readInt()
+
+    val tracingInfo =
+      if (isTraced(flags)) {
+        val bytes = new Array[Byte](TracingHeaders.sizeInBytes)
+        buf.readBytes(bytes)
+        length -= TracingHeaders.sizeInBytes
+
+        Some(TracingHeaders.fromByteArray(bytes))
+      }
+      else None
+
     val message = {
-      val bytes = new Array[Byte](buf.readableBytes())
+      val bytes = new Array[Byte](length)
       buf.slice()
       buf.readBytes(bytes)
       bytes
     }
-    RequestMessage(id, length, protocol, message, token, method, isFireAndForgetMethod)
+
+    RequestMessage(id, length, protocol, message, token, method, isFireAndForgetMethod(flags), tracingInfo)
   }
 
   def getIdFromByteBuf(buf: ByteBuf): Long = {
     buf.getLong(0)
   }
 
+  def isFireAndForgetMethod(flags: Byte): Boolean =
+    (flags & isFireAndForgetFlag) != 0
+
+  def isTraced(flags: Byte): Boolean =
+    (flags & isTracedFlag) != 0
 }
 

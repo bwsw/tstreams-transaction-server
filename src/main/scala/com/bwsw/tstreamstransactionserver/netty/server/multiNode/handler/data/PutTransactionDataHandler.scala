@@ -7,7 +7,7 @@ import com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler.MultiNo
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler.data.PutTransactionDataHandler._
 import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage}
 import com.bwsw.tstreamstransactionserver.rpc.{ServerException, TransactionService}
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import org.apache.bookkeeper.client.BKException.Code
 import org.apache.bookkeeper.client.{AsyncCallback, BKException, LedgerHandle}
 
@@ -69,7 +69,7 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
 
               //          ledgerHandler.addEntry(record)
               //          isPuttedResponse
-              tracer.invoke(message, PutTransactionDataHandler.processLedger)
+              tracer.invoke(message, Some(PutTransactionDataHandler.processLedger))
               ledgerHandler.asyncAddEntry(record, callback(message), promise)
             //          promise
           }

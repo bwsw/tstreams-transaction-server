@@ -11,7 +11,7 @@ import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions.AuthenticationOptions
 import com.bwsw.tstreamstransactionserver.protocol.TransactionState
 import com.bwsw.tstreamstransactionserver.rpc._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.apache.bookkeeper.client.BKException.Code
 import org.apache.bookkeeper.client.{AsyncCallback, BKException, LedgerHandle}
@@ -79,7 +79,6 @@ class OpenTransactionHandler(server: TransactionServer,
           promise.failure(BKException.create(bkCode).fillInStackTrace())
         }
       }
-      tracer.finishRequest(message)
     }
   }
 
@@ -114,7 +113,6 @@ class OpenTransactionHandler(server: TransactionServer,
           promise.failure(BKException.create(bkCode).fillInStackTrace())
         }
       }
-      tracer.finishRequest(message)
     }
   }
 
@@ -162,7 +160,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, OpenTransactionHandler.fireAndForgetLedger)
+                tracer.invoke(message, Some(OpenTransactionHandler.fireAndForgetLedger))
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }
@@ -221,7 +219,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, OpenTransactionHandler.getResponseLedger)
+                tracer.invoke(message, Some(OpenTransactionHandler.getResponseLedger))
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }

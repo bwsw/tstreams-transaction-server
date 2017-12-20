@@ -21,11 +21,23 @@ package com.bwsw.tstreamstransactionserver.tracing
 
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 
-/**
-  * Doesn't trace
+/** Doesn't trace TTS server
   *
   * @author Pavel Tomskikh
   */
-object DisabledTracer extends Tracer {
-  override def withTracing[T](request: RequestMessage, name: => String)(traced: => T): T = traced
+object DisabledServerTracer extends ServerTracer {
+  override def withTracing[T](request: RequestMessage,
+                              name: Option[String],
+                              parentName: Option[String])
+                             (traced: => T): T = traced
+
+  override def invoke(request: RequestMessage, name: Option[String], parentName: Option[String]): Option[String] = None
+
+  override def finish(request: RequestMessage, name: String): Unit = {}
+
+  override def serverSend(request: RequestMessage): Unit = {}
+
+  override def serverReceive(request: RequestMessage): Unit = {}
+
+  override def close(): Unit = {}
 }

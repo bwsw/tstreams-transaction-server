@@ -19,69 +19,74 @@
 
 package com.bwsw.tstreamstransactionserver.tracing
 
-import java.util.concurrent.Executors
+import java.net.InetAddress
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 
-import brave.{Span, Tracing}
-import com.bwsw.tstreamstransactionserver.netty.RequestMessage
+import com.bwsw.tstreamstransactionserver.netty.Protocol.OpenTransaction
 import zipkin2.reporter.AsyncReporter
 import zipkin2.reporter.okhttp3.OkHttpSender
+import zipkin2.{Endpoint, Span}
 
-import scala.collection.concurrent.TrieMap
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
-
-/**
+/** Asynchronous tracer.
+  *
+  * Takes tracing events from queue and handles it.
+  *
+  * @param zipkinAddress OpenZipkin address
+  * @param serviceName   local endpoint name
+  * @param address       local endpoint address
+  * @param port          local endpoint port
+  * @param threadName    thread name
   * @author Pavel Tomskikh
   */
-class AsyncTracer(sender: OkHttpSender, reporter: AsyncReporter[zipkin2.Span], serviceName: String) {
+abstract class AsyncTracer(zipkinAddress: String,
+                           serviceName: String,
+                           address: InetAddress,
+                           port: Int,
+                           threadName: String = "tracer")
+  extends Thread(threadName) {
 
-  private implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(1))
-  private val tracing = Tracing.newBuilder()
-    .spanReporter(reporter)
-    .localServiceName(serviceName)
+  protected val endpoint: Endpoint = Endpoint.newBuilder()
+    .ip(address)
+    .port(port)
+    .serviceName(serviceName)
     .build()
-  private val tracer = tracing.tracer()
-  private val requestSpans = TrieMap.empty[Long, Span]
-  private val spans = TrieMap.empty[Span, TrieMap[String, Span]]
+
+  protected val tracedMethods: Map[Byte, String] = Set(
+    OpenTransaction)
+    .map(method => method.methodID -> method.name)
+    .toMap
+
+  protected val tracedMethodsIds: Set[Byte] = tracedMethods.keySet
+  protected val sender: OkHttpSender = OkHttpSender.create(s"http://$zipkinAddress/api/v2/spans")
+  protected val reporter: AsyncReporter[Span] = AsyncReporter.create(sender)
+  protected val running: AtomicBoolean = new AtomicBoolean(true)
+  protected val events: BlockingQueue[AsyncTracer.Event] = new LinkedBlockingQueue[AsyncTracer.Event]
+  protected val pollingTimeout: Long = 1000
 
 
-  def startRequest(request: RequestMessage, timestamp: Long): Unit =
-    Future(startRequest(request.id, timestamp))
-
-  def finishRequest(request: RequestMessage, timestamp: Long): Unit = Future {
-    requestSpans.get(request.id)
-      .filter { span => spans.get(span).forall(_.isEmpty) }
-      .foreach(_.finish(timestamp))
+  def close(): Unit = {
+    running.set(false)
+    reporter.flush()
+    reporter.close()
+    sender.close()
   }
 
-  def invoke(request: RequestMessage, name: => String, timestamp: Long, stackTrace: Array[StackTraceElement]): Unit = Future {
-    val requestSpan = requestSpans.getOrElse(request.id, startRequest(request.id, timestamp))
-
-    val spansForRequest = spans(requestSpan)
-    val parentSpan = stackTrace
-      .collectFirst { case s if spansForRequest.contains(s.toString) => spansForRequest(s.toString) }
-      .getOrElse(requestSpan)
-
-    val span = tracer.newChild(parentSpan.context()).name(name).start(timestamp)
-    spansForRequest += name -> span
+  override def run(): Unit = {
+    while (running.get()) {
+      Option(events.poll(pollingTimeout, TimeUnit.MILLISECONDS))
+        .foreach(_.handle())
+    }
   }
 
-  def finish(request: RequestMessage, name: => String, timestamp: Long): Unit = Future {
-    requestSpans.get(request.id).foreach(requestSpan =>
-      spans.get(requestSpan)
-        .foreach(_.remove(name)
-          .foreach(_.finish(timestamp))))
+  override def interrupt(): Unit = running.set(true)
+}
+
+object AsyncTracer {
+
+  /** Tracing event */
+  trait Event {
+    def handle(): Unit
   }
 
-  def close(): Unit =
-    Await.result(Future(tracing.close()), Duration.Inf)
-
-
-  private def startRequest(requestId: Long, timestamp: Long): Span = {
-    val span = tracer.newTrace().name(s"request-$requestId").start(timestamp)
-    requestSpans += requestId -> span
-    spans += span -> TrieMap.empty
-
-    span
-  }
 }

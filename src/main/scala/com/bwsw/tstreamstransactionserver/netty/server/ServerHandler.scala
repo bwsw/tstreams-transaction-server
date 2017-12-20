@@ -21,7 +21,7 @@ package com.bwsw.tstreamstransactionserver.netty.server
 
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.handler.RequestRouter
-
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandler.Sharable
 import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
@@ -35,6 +35,7 @@ class ServerHandler(requestRouter: RequestRouter)
 
   override def channelRead0(ctx: ChannelHandlerContext, buf: ByteBuf): Unit = {
     val message = RequestMessage.fromByteBuf(buf)
+    tracer.serverReceive(message)
     invokeMethod(message, ctx)
   }
 

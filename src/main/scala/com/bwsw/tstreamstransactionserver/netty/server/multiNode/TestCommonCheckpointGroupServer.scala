@@ -19,7 +19,7 @@ class TestCommonCheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                                       storageOpts: StorageOptions,
                                       rocksStorageOpts: RocksStorageOptions,
                                       subscribersUpdateOptions: SubscriberUpdateOptions,
-                                      tracingOptions: TracingOptions)
+                                      tracingOptions: TracingOptions = TracingOptions())
   extends CommonCheckpointGroupServer(
     authenticationOpts,
     packageTransmissionOpts,

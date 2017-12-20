@@ -29,7 +29,7 @@ import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions.Authen
 import com.bwsw.tstreamstransactionserver.protocol.TransactionState
 import com.bwsw.tstreamstransactionserver.rpc.TransactionService.OpenTransaction
 import com.bwsw.tstreamstransactionserver.rpc._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -85,7 +85,6 @@ class OpenTransactionHandler(server: TransactionServer,
         }
       }(context)
     }
-    tracer.finishRequest(message)
   }
 
   override protected def getResponse(message: RequestMessage, ctx: ChannelHandlerContext): (Future[_], ExecutionContext) = {
@@ -119,8 +118,6 @@ class OpenTransactionHandler(server: TransactionServer,
             message
           )
         }
-
-        tracer.finishRequest(message)
       }(context)
 
       (result, context)

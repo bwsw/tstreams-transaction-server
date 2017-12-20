@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.protocol._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 
 import scala.util.Random
 
@@ -42,7 +42,7 @@ final class OpenedTransactionNotifier(observer: SubscribersObserver,
                         ttlMs: Long,
                         authKey: String,
                         isNotReliable: Boolean,
-                        message: RequestMessage = RequestMessage(-1, 0, -1, Array.empty, -1, -1, false)): Unit = {
+                        message: RequestMessage = RequestMessage(-1, 0, -1, Array.empty, -1, -1, isFireAndForgetMethod = false)): Unit = {
     tracer.withTracing(message) {
       // 1. manage next counter for (stream, part)
       val streamPartitionUnit = StreamPartitionUnit(stream, partition)

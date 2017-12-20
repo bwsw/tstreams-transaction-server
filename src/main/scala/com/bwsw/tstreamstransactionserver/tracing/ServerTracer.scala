@@ -19,51 +19,66 @@
 
 package com.bwsw.tstreamstransactionserver.tracing
 
-import java.util.UUID
-
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 
-/** Provides methods to tracing requests
+/** Provides methods to trace TTS server
   *
   * @author Pavel Tomskikh
   */
-trait Tracer {
+trait ServerTracer {
 
   /** Traces some method if tracing enabled and request should be traced
     *
-    * @param request request
-    * @param name    span name
-    * @param traced  method to trace
+    * @param request    request
+    * @param name       span name
+    * @param parentName parent span name
+    * @param traced     method to trace
     * @tparam T traced method return type
     * @return traced method result
     */
-  def withTracing[T](request: RequestMessage, name: => String = UUID.randomUUID().toString)
+  def withTracing[T](request: RequestMessage,
+                     name: Option[String] = None,
+                     parentName: Option[String] = None)
                     (traced: => T): T
 
-  /** Reports request handling started if tracing enabled and request should be traced
+  /** Reports server invoked into some method
+    *
+    * @param request    request
+    * @param name       span name
+    * @param parentName parent span name
+    * @return name of created span
+    */
+  def invoke(request: RequestMessage,
+             name: Option[String] = None,
+             parentName: Option[String] = None): Option[String]
+
+  /** Reports server finished some method
+    *
+    * @param request request
+    * @param name    span name
+    */
+  def finish(request: RequestMessage, name: String): Unit
+
+  /** Reports server sent response to a request
     *
     * @param request request
     */
-  def startRequest(request: RequestMessage): Unit = {}
+  def serverSend(request: RequestMessage): Unit
 
-  def invoke(request: RequestMessage, name: => String): Unit = {}
-
-  def finish(request: RequestMessage, name: => String): Unit = {}
-
-  /** Reports request handling started if tracing enabled and request should be traced
+  /** Reports server received request
     *
-    * @param request request
+    * @param request
     */
-  def finishRequest(request: RequestMessage): Unit = {}
+  def serverReceive(request: RequestMessage): Unit
 
-
-  def close(): Unit = {}
+  def close(): Unit
 }
 
 
-object Tracer {
-  private var _tracer: Tracer = DisabledTracer
+object ServerTracer {
+
+  private var _tracer: ServerTracer = DisabledServerTracer
   private var initialized = false
 
   /** Initializes tracer
@@ -74,10 +89,12 @@ object Tracer {
   def init(options: TracingOptions, serviceName: String = "TTS"): Unit = {
     if (initialized) throw new IllegalStateException("Tracer already initialized")
     if (options.enabled) {
-      _tracer = new EnabledTracer(options.endpoint, serviceName)
+      val tracer = new AsyncServerTracer(options.endpoint, serviceName)
+      tracer.start()
+      _tracer = tracer
       initialized = true
     }
   }
 
-  def tracer: Tracer = _tracer
+  def tracer: ServerTracer = _tracer
 }

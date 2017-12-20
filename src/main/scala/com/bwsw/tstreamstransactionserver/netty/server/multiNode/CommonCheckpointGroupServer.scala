@@ -15,7 +15,7 @@ import com.bwsw.tstreamstransactionserver.options.CommonOptions
 import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer
 import com.bwsw.tstreamstransactionserver.{ExecutionContextGrid, SinglePoolExecutionContextGrid}
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.socket.ServerSocketChannel
@@ -37,7 +37,7 @@ class CommonCheckpointGroupServer(authenticationOpts: AuthenticationOptions,
                                   tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions, "TTS-M")
+  ServerTracer.init(tracingOptions, "TTS-M")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(

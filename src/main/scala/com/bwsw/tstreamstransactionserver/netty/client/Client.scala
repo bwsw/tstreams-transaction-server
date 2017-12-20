@@ -20,7 +20,7 @@ package com.bwsw.tstreamstransactionserver.netty.client
 
 import com.bwsw.tstreamstransactionserver.netty.client.api.TTSInetClient
 import com.bwsw.tstreamstransactionserver.options.ClientOptions.{AuthOptions, ConnectionOptions}
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import com.bwsw.tstreamstransactionserver.rpc
 import com.bwsw.tstreamstransactionserver.rpc._
 import org.apache.curator.framework.CuratorFramework
@@ -34,7 +34,8 @@ import scala.concurrent.Future
 class Client(clientOpts: ConnectionOptions,
              authOpts: AuthOptions,
              zookeeperOptions: ZookeeperOptions,
-             externalCuratorClient: Option[CuratorFramework] = None)
+             externalCuratorClient: Option[CuratorFramework] = None,
+             tracingOptions: TracingOptions = TracingOptions())
   extends TTSInetClient {
 
 
@@ -45,7 +46,8 @@ class Client(clientOpts: ConnectionOptions,
     onZKConnectionStateChanged,
     onServerConnectionLost(),
     onRequestTimeout(),
-    externalCuratorClient
+    externalCuratorClient,
+    tracingOptions
   )
 
 

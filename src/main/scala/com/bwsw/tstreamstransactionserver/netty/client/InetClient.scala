@@ -7,8 +7,9 @@ import com.bwsw.tstreamstransactionserver.exception.Throwable._
 import com.bwsw.tstreamstransactionserver.netty.client.zk.{ZKConnectionLostListener, ZKMasterPathMonitor}
 import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage, ResponseMessage, SocketHostPortPair}
 import com.bwsw.tstreamstransactionserver.options.ClientOptions.{AuthOptions, ConnectionOptions}
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import com.bwsw.tstreamstransactionserver.rpc.{TransactionService, TransportOptionsInfo}
+import com.bwsw.tstreamstransactionserver.tracing.ClientTracer
 import com.twitter.scrooge.ThriftStruct
 import io.netty.buffer.ByteBuf
 import io.netty.channel.EventLoopGroup
@@ -32,7 +33,10 @@ class InetClient(zookeeperOptions: ZookeeperOptions,
                  zkConnection: CuratorFramework,
                  requestIDGen: AtomicLong,
                  requestIdToResponseMap: ConcurrentHashMap[Long, Promise[ByteBuf]],
-                 context: ExecutionContextExecutorService) {
+                 context: ExecutionContextExecutorService,
+                 tracingOptions: TracingOptions = TracingOptions()) {
+
+  private val tracer = ClientTracer(tracingOptions)
 
   private val logger =
     LoggerFactory.getLogger(this.getClass)
@@ -181,20 +185,27 @@ class InetClient(zookeeperOptions: ZookeeperOptions,
                                                                        previousException: Option[Throwable] = None,
                                                                        retryCount: Int = Int.MaxValue)
                                                                       (implicit methodContext: concurrent.ExecutionContext): Future[A] = {
+    val updatedMessage = tracer.clientSend(message)
     val promise = Promise[ByteBuf]
-    requestIdToResponseMap.put(message.id, promise)
+    requestIdToResponseMap.put(updatedMessage.id, promise)
 
     val channel = nettyClient.getChannel()
     val binaryResponse =
-      message.toByteBuf(channel.alloc())
+      updatedMessage.toByteBuf(channel.alloc())
 
     val responseFuture = TimeoutScheduler.withTimeout(
-      promise.future.map { response =>
-        requestIdToResponseMap.remove(message.id)
+      (updatedMessage.tracingInfo match {
+        case Some(tracingInfo) => promise.future.transform { tried =>
+          tracer.clientReceive(tracingInfo)
+          tried
+        }
+        case None => promise.future
+      }).map { response =>
+        requestIdToResponseMap.remove(updatedMessage.id)
         f(descriptor.decodeResponse(response))
       }
     )(connectionOptions.requestTimeoutMs.millis,
-      message.id
+      updatedMessage.id
     )(methodContext)
 
     channel.eventLoop().execute(() =>
@@ -202,7 +213,7 @@ class InetClient(zookeeperOptions: ZookeeperOptions,
     )
 
     responseFuture.recoverWith { case error =>
-      requestIdToResponseMap.remove(message.id)
+      requestIdToResponseMap.remove(updatedMessage.id)
       val (currentException, counter) =
         checkError(error, previousException, retryCount)
       if (counter == 0) {
@@ -210,7 +221,7 @@ class InetClient(zookeeperOptions: ZookeeperOptions,
       }
       else {
         val messageId = requestIDGen.getAndIncrement()
-        val newMessage = message.copy(
+        val newMessage = updatedMessage.copy(
           id = messageId,
           token = getToken
         )

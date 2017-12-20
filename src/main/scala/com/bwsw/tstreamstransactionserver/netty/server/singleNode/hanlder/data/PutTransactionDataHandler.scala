@@ -20,13 +20,13 @@ package com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.data
 
 import com.bwsw.tstreamstransactionserver.netty.server.TransactionServer
 import com.bwsw.tstreamstransactionserver.netty.server.handler.PredefinedContextHandler
+import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.data.PutTransactionDataHandler._
 import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage}
 import com.bwsw.tstreamstransactionserver.rpc.{ServerException, TransactionService}
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.ExecutionContext
-import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.data.PutTransactionDataHandler._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
 
 
 private object PutTransactionDataHandler {
