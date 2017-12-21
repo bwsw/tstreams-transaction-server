@@ -112,7 +112,6 @@ libraryDependencies ++= Seq(
     .exclude("log4j", "log4j")
     .exclude("org.slf4j", "slf4j-api"),
 
-  "io.zipkin.brave" % "brave" % "4.11.0",
   "io.zipkin.reporter2" % "zipkin-sender-okhttp3" % "2.1.4"
 )
 

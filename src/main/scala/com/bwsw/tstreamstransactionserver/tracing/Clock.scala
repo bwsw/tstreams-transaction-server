@@ -19,13 +19,14 @@
 
 package com.bwsw.tstreamstransactionserver.tracing
 
-import com.bwsw.tstreamstransactionserver.netty.RequestMessage
+object Clock {
+  private val millis = System.currentTimeMillis()
+  private val nanos = System.nanoTime()
+  private val start = (millis - (nanos / 1000000)) * 1000
 
-/**
-  * Doesn't trace
-  *
-  * @author Pavel Tomskikh
-  */
-object DisabledTracer extends Tracer {
-  override def withTracing[T](request: RequestMessage, name: => String)(traced: => T): T = traced
+  /** Returns the current time in microseconds
+    *
+    * @return the current time in microseconds
+    */
+  def currentTimeMicroseconds: Long = start + System.nanoTime() / 1000
 }

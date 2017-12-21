@@ -1,7 +1,7 @@
 package com.bwsw.tstreamstransactionserver.netty.server.handler
 
 import com.bwsw.tstreamstransactionserver.netty.{RequestMessage, ResponseMessage}
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -36,14 +36,13 @@ abstract class ClientRequestHandler(val id: Byte,
   protected final def sendResponse(message: RequestMessage,
                                    response: Array[Byte],
                                    ctx: ChannelHandlerContext): Unit = {
-    tracer.withTracing(message) {
-      val responseMessage = ResponseMessage(message.id, response)
-      val binaryResponse = responseMessage.toByteBuf(ctx.alloc())
-      val channel = ctx.channel()
-      if (channel.isActive)
-        channel.eventLoop().execute(() =>
-          ctx.writeAndFlush(binaryResponse, ctx.voidPromise())
-        )
+    val responseMessage = ResponseMessage(message.id, response)
+    val binaryResponse = responseMessage.toByteBuf(ctx.alloc())
+    val channel = ctx.channel()
+    if (channel.isActive) {
+      tracer.serverSend(message)
+      channel.eventLoop().execute(() =>
+        ctx.writeAndFlush(binaryResponse, ctx.voidPromise()))
     }
   }
 }

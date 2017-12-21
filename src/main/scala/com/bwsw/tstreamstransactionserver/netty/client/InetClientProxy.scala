@@ -12,7 +12,7 @@ import com.bwsw.tstreamstransactionserver.netty.Protocol
 import com.bwsw.tstreamstransactionserver.netty.client.api.TTSInetClient
 import com.bwsw.tstreamstransactionserver.netty.client.zk.ZKClient
 import com.bwsw.tstreamstransactionserver.options.ClientOptions.{AuthOptions, ConnectionOptions}
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import com.bwsw.tstreamstransactionserver.rpc._
 import io.netty.buffer.ByteBuf
 import io.netty.channel.EventLoopGroup
@@ -23,7 +23,7 @@ import org.apache.curator.framework.state.ConnectionState
 import org.apache.curator.retry.RetryForever
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 
@@ -33,7 +33,8 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
                       onZKConnectionStateChangedFunc: ConnectionState => Unit = _ => {},
                       onServerConnectionLostFunc: => Unit = {},
                       onRequestTimeoutFunc: => Unit = {},
-                      externalCuratorClient: Option[CuratorFramework] = None)
+                      externalCuratorClient: Option[CuratorFramework] = None,
+                      tracingOptions: TracingOptions = TracingOptions())
   extends TTSInetClient {
 
   private final val executionContext =
@@ -44,7 +45,7 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
   private final val processTransactionsPutOperationPool =
     ExecutionContextGrid("ClientTransactionPool-%d")
   private final val contextForProducerTransactions =
-//    context
+  //    context
     processTransactionsPutOperationPool.getContext
 
 
@@ -103,12 +104,13 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
       zkConnection,
       requestIDGen,
       requestIdToResponseCommonMap,
-      context
+      context,
+      tracingOptions
     )
 
   private val checkpointGroupInetClient: Future[InetClient] = commonInetClient
     .getZKCheckpointGroupServerPrefix()
-    .map{prefix =>
+    .map { prefix =>
       val connectionOpts =
         connectionOptions.copy(prefix = prefix)
 
@@ -124,7 +126,8 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
         zkConnection,
         requestIDGen,
         requestIdToResponseCheckpointGroupMap,
-        context
+        context,
+        tracingOptions
       )
     }(context)
 
@@ -344,7 +347,7 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
     if (transactions.isEmpty) {
       Future.successful(true)
     } else {
-//      println("***[client] Put transactions " ++ transactions.mkString("{\n  ", "\n  ", "\n}"))
+      //      println("***[client] Put transactions " ++ transactions.mkString("{\n  ", "\n  ", "\n}"))
 
       if (logger.isDebugEnabled)
         logger.debug(s"putTransactions method is invoked: $transactions.")
@@ -443,7 +446,7 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
     if (logger.isDebugEnabled) logger.debug(s"Putting 'lightweight' producer transaction to stream $streamID, partition $partition with data: $data")
     onShutdownThrowException()
 
-//    println(s"***[client] Producer checkpointed transaction: $streamID, $partition")
+    //    println(s"***[client] Producer checkpointed transaction: $streamID, $partition")
     commonInetClient.method[TransactionService.PutSimpleTransactionAndData.Args, TransactionService.PutSimpleTransactionAndData.Result, Long](
       Protocol.PutSimpleTransactionAndData,
       TransactionService.PutSimpleTransactionAndData.Args(streamID, partition, data.map(java.nio.ByteBuffer.wrap)),
@@ -486,7 +489,7 @@ class InetClientProxy(connectionOptions: ConnectionOptions,
       logger.debug(s"Putting 'lightweight' producer transaction to stream $streamID, partition $partitionID with TTL: $transactionTTLMs")
     onShutdownThrowException()
 
-//    println(s"***[client] Producer opened transaction: $streamID, $partitionID, $transactionTTLMs")
+    //    println(s"***[client] Producer opened transaction: $streamID, $partitionID, $transactionTTLMs")
 
     commonInetClient.method[TransactionService.OpenTransaction.Args, TransactionService.OpenTransaction.Result, Long](
       Protocol.OpenTransaction,

@@ -3,7 +3,7 @@ package com.bwsw.tstreamstransactionserver.netty.server.handler
 import com.bwsw.tstreamstransactionserver.exception.Throwable.TokenInvalidException
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.netty.server.authService.AuthService
-import com.bwsw.tstreamstransactionserver.tracing.Tracer.tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 import org.slf4j.{Logger, LoggerFactory}
 

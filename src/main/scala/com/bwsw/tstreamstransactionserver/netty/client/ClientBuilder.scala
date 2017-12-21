@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,43 +20,47 @@
 package com.bwsw.tstreamstransactionserver.netty.client
 
 import com.bwsw.tstreamstransactionserver.options.ClientOptions._
-import com.bwsw.tstreamstransactionserver.options.CommonOptions.ZookeeperOptions
+import com.bwsw.tstreamstransactionserver.options.CommonOptions.{TracingOptions, ZookeeperOptions}
 import org.apache.curator.framework.CuratorFramework
 
 
 class ClientBuilder private(authOpts: AuthOptions,
                             zookeeperOpts: ZookeeperOptions,
                             connectionOpts: ConnectionOptions,
-                            curatorOpt: Option[CuratorFramework]) {
+                            curatorOpt: Option[CuratorFramework],
+                            tracingOpts: TracingOptions) {
   private val authOptions = authOpts
   private val zookeeperOptions = zookeeperOpts
   private val connectionOptions = connectionOpts
   private val curator: Option[CuratorFramework] = curatorOpt
+  private val tracingOptions = tracingOpts
 
   def this() =
-    this(AuthOptions(), ZookeeperOptions(), ConnectionOptions(), None)
+    this(AuthOptions(), ZookeeperOptions(), ConnectionOptions(), None, TracingOptions())
 
   def withAuthOptions(authOptions: AuthOptions) =
-    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator)
+    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator, tracingOptions)
 
   def withZookeeperOptions(zookeeperOptions: ZookeeperOptions) =
-    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator)
+    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator, tracingOptions)
 
   def withCuratorConnection(curator: CuratorFramework) =
-    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, Some(curator))
+    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, Some(curator), tracingOptions)
 
   def withConnectionOptions(clientOptions: ConnectionOptions) =
-    new ClientBuilder(authOptions, zookeeperOptions, clientOptions, curator)
+    new ClientBuilder(authOptions, zookeeperOptions, clientOptions, curator, tracingOptions)
+
+  def withTracingOpts(tracingOptions: TracingOptions) =
+    new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator, tracingOptions)
 
   def build() =
-    new Client(connectionOptions, authOptions, zookeeperOptions, curator)
+    new Client(connectionOptions, authOptions, zookeeperOptions, curator, tracingOptions)
 
-  def getConnectionOptions =
-    connectionOptions.copy()
+  def getConnectionOptions: ConnectionOptions = connectionOptions.copy()
 
-  def getZookeeperOptions =
-    zookeeperOptions.copy()
+  def getZookeeperOptions: ZookeeperOptions = zookeeperOptions.copy()
 
-  def getAuthOptions =
-    authOptions.copy()
+  def getAuthOptions: AuthOptions = authOptions.copy()
+
+  def getTracingOtrions: TracingOptions = tracingOptions
 }

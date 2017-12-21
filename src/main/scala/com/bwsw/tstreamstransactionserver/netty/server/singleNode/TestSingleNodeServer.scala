@@ -18,7 +18,7 @@ class TestSingleNodeServer(authenticationOpts: AuthenticationOptions,
                            commitLogOptions: CommitLogOptions,
                            packageTransmissionOpts: TransportOptions,
                            subscribersUpdateOptions: SubscriberUpdateOptions,
-                           tracingOptions: TracingOptions)
+                           tracingOptions: TracingOptions = TracingOptions())
   extends SingleNodeServer(
     authenticationOpts,
     zookeeperOpts,

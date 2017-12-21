@@ -3,10 +3,9 @@ package com.bwsw.tstreamstransactionserver.netty.server.multiNode.common
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.bwsw.tstreamstransactionserver.{ExecutionContextGrid, SinglePoolExecutionContextGrid}
 import com.bwsw.tstreamstransactionserver.configProperties.ServerExecutionContextGrids
-import com.bwsw.tstreamstransactionserver.netty.server.db.zk.ZookeeperStreamRepository
 import com.bwsw.tstreamstransactionserver.netty.server._
+import com.bwsw.tstreamstransactionserver.netty.server.db.zk.ZookeeperStreamRepository
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.commitLogService.CommitLogService
 import com.bwsw.tstreamstransactionserver.netty.server.storage.rocks.MultiNodeRockStorage
 import com.bwsw.tstreamstransactionserver.netty.server.subscriber.{OpenedTransactionNotifier, SubscriberNotifier, SubscribersObserver}
@@ -16,10 +15,11 @@ import com.bwsw.tstreamstransactionserver.options.CommonOptions
 import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 import com.bwsw.tstreamstransactionserver.options.MultiNodeServerOptions.{BookkeeperOptions, CommonPrefixesOptions}
 import com.bwsw.tstreamstransactionserver.options.SingleNodeServerOptions._
-import com.bwsw.tstreamstransactionserver.tracing.Tracer
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer
+import com.bwsw.tstreamstransactionserver.{ExecutionContextGrid, SinglePoolExecutionContextGrid}
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.{ChannelOption, EventLoopGroup}
 import io.netty.channel.socket.ServerSocketChannel
+import io.netty.channel.{ChannelOption, EventLoopGroup}
 import io.netty.handler.logging.{LogLevel, LoggingHandler}
 import org.apache.curator.retry.RetryForever
 
@@ -37,7 +37,7 @@ class CommonServer(authenticationOpts: AuthenticationOptions,
                    tracingOptions: TracingOptions) {
   private val isShutdown = new AtomicBoolean(false)
 
-  Tracer.init(tracingOptions, "TTS-C")
+  ServerTracer.init(tracingOptions, "TTS-C")
 
   private val transactionServerSocketAddress =
     Util.createTransactionServerExternalSocket(
