@@ -161,6 +161,7 @@ class AsyncServerTracer(zipkinAddress: String,
         traceId = tracingInfo.traceId.toHexString,
         timestamp = timestamp,
         name = tracedMethods.getOrElse(request.methodId, "request") + s" (${request.id})")
+      rootSpan.builder.localEndpoint(endpoint)
 
       rootSpans += request.id -> rootSpan
     }
@@ -180,6 +181,7 @@ class AsyncServerTracer(zipkinAddress: String,
         traceId = request.tracingInfo.get.traceId.toHexString,
         timestamp = timestamp,
         name = name)
+      span.builder.localEndpoint(endpoint)
 
       parentSpan.map(_.id).foreach(span.builder.parentId)
 

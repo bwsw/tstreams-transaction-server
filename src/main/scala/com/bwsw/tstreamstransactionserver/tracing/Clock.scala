@@ -20,7 +20,9 @@
 package com.bwsw.tstreamstransactionserver.tracing
 
 object Clock {
-  private val start = System.currentTimeMillis() * 1000 - System.nanoTime() / 1000
+  private val millis = System.currentTimeMillis()
+  private val nanos = System.nanoTime()
+  private val start = (millis - (nanos / 1000000)) * 1000
 
   /** Returns the current time in microseconds
     *
