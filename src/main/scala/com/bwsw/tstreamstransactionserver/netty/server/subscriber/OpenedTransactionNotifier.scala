@@ -43,7 +43,7 @@ final class OpenedTransactionNotifier(observer: SubscribersObserver,
                         authKey: String,
                         isNotReliable: Boolean,
                         message: RequestMessage = RequestMessage(-1, 0, -1, Array.empty, -1, -1, isFireAndForgetMethod = false)): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".notifySubscribers") {
       // 1. manage next counter for (stream, part)
       val streamPartitionUnit = StreamPartitionUnit(stream, partition)
       val currentCounter = counters.computeIfAbsent(

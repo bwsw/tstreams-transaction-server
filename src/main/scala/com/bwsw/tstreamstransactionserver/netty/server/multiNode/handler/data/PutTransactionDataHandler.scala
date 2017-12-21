@@ -23,7 +23,7 @@ private object PutTransactionDataHandler {
     TransactionService.PutTransactionData.Result(Some(false))
   )
 
-  private val processLedger = s"${classOf[PutTransactionDataHandler]}.process.ledgerHandler.asyncAddEntry()"
+  private val processLedger = s"${classOf[PutTransactionDataHandler]}.process.ledgerHandler.asyncAddEntry"
 }
 
 
@@ -40,7 +40,7 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
                              entryId: Long,
                              obj: scala.Any): Unit = {
       tracer.finish(message, PutTransactionDataHandler.processLedger)
-      tracer.withTracing(message) {
+      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Array[Byte]]]
         if (Code.OK == bkCode)
           promise.success(isPuttedResponse)
@@ -51,10 +51,10 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
   }
 
   private def process(message: RequestMessage): Future[Array[Byte]] = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".process") {
       val promise = Promise[Array[Byte]]()
       Future {
-        tracer.withTracing(message) {
+        tracer.withTracing(message, name = getClass.getName + ".process.Future") {
           bookkeeperMaster.doOperationWithCurrentWriteLedger {
             case Left(throwable) =>
               promise.failure(throwable)
@@ -69,12 +69,13 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
 
               //          ledgerHandler.addEntry(record)
               //          isPuttedResponse
-              tracer.invoke(message, Some(PutTransactionDataHandler.processLedger))
+              tracer.invoke(message, PutTransactionDataHandler.processLedger)
               ledgerHandler.asyncAddEntry(record, callback(message), promise)
             //          promise
           }
         }
       }(context)
+
       promise.future
     }
   }
@@ -86,12 +87,6 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
 
   override def createErrorResponse(message: String): Array[Byte] = {
     descriptor.encodeResponse(
-      TransactionService.PutTransactionData.Result(
-        None,
-        Some(ServerException(message)
-        )
-      )
-    )
+      TransactionService.PutTransactionData.Result(None, Some(ServerException(message))))
   }
 }
-

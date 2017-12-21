@@ -17,7 +17,7 @@ abstract class MultiNodePredefinedContextHandler(override final val id: Byte,
   override final def handle(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".handle") {
       if (message.isFireAndForgetMethod)
         handleFireAndForgetRequest(message, ctx, acc)
       else

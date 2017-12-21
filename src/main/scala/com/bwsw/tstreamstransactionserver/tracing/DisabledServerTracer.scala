@@ -27,13 +27,13 @@ import com.bwsw.tstreamstransactionserver.netty.RequestMessage
   */
 object DisabledServerTracer extends ServerTracer {
   override def withTracing[T](request: RequestMessage,
-                              name: Option[String],
-                              parentName: Option[String])
+                              name: => String,
+                              parentName: => Option[String])
                              (traced: => T): T = traced
 
-  override def invoke(request: RequestMessage, name: Option[String], parentName: Option[String]): Option[String] = None
+  override def invoke(request: RequestMessage, name: => String, parentName: => Option[String]): Unit = None
 
-  override def finish(request: RequestMessage, name: String): Unit = {}
+  override def finish(request: RequestMessage, name: => String): Unit = {}
 
   override def serverSend(request: RequestMessage): Unit = {}
 

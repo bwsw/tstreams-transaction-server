@@ -17,7 +17,7 @@ class DataPackageSizeValidationHandler(nextHandler: RequestHandler,
   override def handle(message: RequestMessage,
                       ctx: ChannelHandlerContext,
                       error: Option[Throwable]): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".handle") {
       if (error.isDefined) {
         if (message.isFireAndForgetMethod) {
           if (logger.isDebugEnabled())

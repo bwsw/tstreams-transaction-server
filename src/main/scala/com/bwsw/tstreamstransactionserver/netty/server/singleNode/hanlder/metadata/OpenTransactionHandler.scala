@@ -61,11 +61,11 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   override protected def fireAndForget(message: RequestMessage): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".fireAndForget") {
       val args = descriptor.decodeRequest(message.body)
       val context = getContext(args.streamID, args.partition)
       Future {
-        tracer.withTracing(message) {
+        tracer.withTracing(message, name = getClass.getName + ".fireAndForget.Future") {
           val transactionID =
             server.getTransactionID
 
@@ -88,11 +88,11 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   override protected def getResponse(message: RequestMessage, ctx: ChannelHandlerContext): (Future[_], ExecutionContext) = {
-    val result = tracer.withTracing(message) {
+    val result = tracer.withTracing(message, name = getClass.getName + ".getResponse") {
       val args = descriptor.decodeRequest(message.body)
       val context = orderedExecutionPool.pool(args.streamID, args.partition)
       val result = Future {
-        tracer.withTracing(message) {
+        tracer.withTracing(message, name = getClass.getName + ".getResponse.Future") {
           val transactionID =
             server.getTransactionID
 
@@ -129,7 +129,7 @@ class OpenTransactionHandler(server: TransactionServer,
   private def process(args: OpenTransaction.Args,
                       transactionId: Long,
                       message: RequestMessage): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".process") {
       val txn = Transaction(Some(
         ProducerTransaction(
           args.streamID,

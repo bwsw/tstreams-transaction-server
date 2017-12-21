@@ -16,7 +16,7 @@ class AuthHandler(nextHandler: RequestHandler,
   override def handle(message: RequestMessage,
                       ctx: ChannelHandlerContext,
                       acc: Option[Throwable]): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".handle") {
       if (acc.isDefined) {
         if (message.isFireAndForgetMethod) {
           if (logger.isDebugEnabled())

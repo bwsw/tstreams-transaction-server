@@ -22,6 +22,8 @@ package com.bwsw.tstreamstransactionserver.tracing
 import com.bwsw.tstreamstransactionserver.netty.RequestMessage
 import com.bwsw.tstreamstransactionserver.options.CommonOptions.TracingOptions
 
+import scala.util.Random
+
 /** Provides methods to trace TTS server
   *
   * @author Pavel Tomskikh
@@ -38,8 +40,8 @@ trait ServerTracer {
     * @return traced method result
     */
   def withTracing[T](request: RequestMessage,
-                     name: Option[String] = None,
-                     parentName: Option[String] = None)
+                     name: => String = Random.nextLong().toHexString,
+                     parentName: => Option[String] = None)
                     (traced: => T): T
 
   /** Reports server invoked into some method
@@ -50,15 +52,15 @@ trait ServerTracer {
     * @return name of created span
     */
   def invoke(request: RequestMessage,
-             name: Option[String] = None,
-             parentName: Option[String] = None): Option[String]
+             name: => String = Random.nextLong().toHexString,
+             parentName: => Option[String] = None): Unit
 
   /** Reports server finished some method
     *
     * @param request request
     * @param name    span name
     */
-  def finish(request: RequestMessage, name: String): Unit
+  def finish(request: RequestMessage, name: => String): Unit
 
   /** Reports server sent response to a request
     *
@@ -68,7 +70,7 @@ trait ServerTracer {
 
   /** Reports server received request
     *
-    * @param request
+    * @param request request
     */
   def serverReceive(request: RequestMessage): Unit
 
