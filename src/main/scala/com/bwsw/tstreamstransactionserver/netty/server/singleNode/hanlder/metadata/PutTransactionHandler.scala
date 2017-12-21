@@ -22,12 +22,13 @@ import com.bwsw.tstreamstransactionserver.netty.server.TransactionServer
 import com.bwsw.tstreamstransactionserver.netty.server.batch.Frame
 import com.bwsw.tstreamstransactionserver.netty.server.commitLogService.ScheduledCommitLog
 import com.bwsw.tstreamstransactionserver.netty.server.handler.PredefinedContextHandler
+import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metadata.PutTransactionHandler._
 import com.bwsw.tstreamstransactionserver.netty.{Protocol, RequestMessage}
 import com.bwsw.tstreamstransactionserver.rpc.{ServerException, TransactionService}
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.ExecutionContext
-import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metadata.PutTransactionHandler._
 
 private object PutTransactionHandler {
   val descriptor = Protocol.PutTransaction
@@ -51,25 +52,26 @@ class PutTransactionHandler(server: TransactionServer,
     descriptor.encodeResponse(
       TransactionService.PutTransaction.Result(
         None,
-        Some(ServerException(message)
-        )
+        Some(ServerException(message))
       )
     )
   }
 
-  override protected def fireAndForget(message: RequestMessage): Unit = {
-    process(message.body)
-  }
+  override protected def fireAndForget(message: RequestMessage): Unit =
+    tracer.withTracing(message, getClass.getName + ".fireAndForget")(process(message.body))
 
   override protected def getResponse(message: RequestMessage, ctx: ChannelHandlerContext): Array[Byte] = {
-    val response = {
-      val isPutted = process(message.body)
-      if (isPutted)
-        isPuttedResponse
-      else
-        isNotPuttedResponse
+    tracer.withTracing(message, getClass.getName + ".getResponse") {
+      val response = {
+        val isPutted = process(message.body)
+        if (isPutted)
+          isPuttedResponse
+        else
+          isNotPuttedResponse
+      }
+
+      response
     }
-    response
   }
 
   private def process(requestBody: Array[Byte]) = {

@@ -22,8 +22,6 @@ private object PutTransactionDataHandler {
   val isNotPuttedResponse: Array[Byte] = descriptor.encodeResponse(
     TransactionService.PutTransactionData.Result(Some(false))
   )
-
-  private val processLedger = s"${classOf[PutTransactionDataHandler]}.process.ledgerHandler.asyncAddEntry"
 }
 
 
@@ -34,13 +32,15 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
     descriptor.name,
     context) {
 
+  private val processLedger = getClass.getName + ".process.ledgerHandler.asyncAddEntry"
+
   private def callback(message: RequestMessage) = new AsyncCallback.AddCallback {
     override def addComplete(bkCode: Int,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
-      tracer.finish(message, PutTransactionDataHandler.processLedger)
-      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
+      tracer.finish(message, processLedger)
+      tracer.withTracing(message, getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Array[Byte]]]
         if (Code.OK == bkCode)
           promise.success(isPuttedResponse)
@@ -51,10 +51,10 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
   }
 
   private def process(message: RequestMessage): Future[Array[Byte]] = {
-    tracer.withTracing(message, name = getClass.getName + ".process") {
+    tracer.withTracing(message, getClass.getName + ".process") {
       val promise = Promise[Array[Byte]]()
       Future {
-        tracer.withTracing(message, name = getClass.getName + ".process.Future") {
+        tracer.withTracing(message, getClass.getName + ".process.Future") {
           bookkeeperMaster.doOperationWithCurrentWriteLedger {
             case Left(throwable) =>
               promise.failure(throwable)
@@ -69,7 +69,7 @@ class PutTransactionDataHandler(bookkeeperMaster: BookkeeperMaster,
 
               //          ledgerHandler.addEntry(record)
               //          isPuttedResponse
-              tracer.invoke(message, PutTransactionDataHandler.processLedger)
+              tracer.invoke(message, processLedger)
               ledgerHandler.asyncAddEntry(record, callback(message), promise)
             //          promise
           }
