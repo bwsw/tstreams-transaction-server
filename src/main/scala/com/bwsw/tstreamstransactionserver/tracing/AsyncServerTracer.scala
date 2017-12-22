@@ -50,17 +50,16 @@ class AsyncServerTracer(zipkinAddress: String,
   private val rootSpans = TrieMap.empty[Long, SpanBuilderWrapper]
   private val spans: scala.collection.concurrent.Map[(Long, String), SpanBuilderWrapper] =
     TrieMap.empty[(Long, String), SpanBuilderWrapper]
-  private val className = getClass.getName
 
   override def withTracing[T](request: RequestMessage,
-                              maybeName: Option[String],
-                              parentName: Option[String])
+                              name: => String,
+                              parentName: => Option[String])
                              (traced: => T): T = {
 
     if (request.tracingInfo.isDefined) {
-      val name = invoke(request, maybeName, parentName)
+      invoke(request, name, parentName)
       val result = traced
-      name.foreach(s => finish(request, s))
+      finish(request, name)
 
       result
     }
@@ -68,22 +67,16 @@ class AsyncServerTracer(zipkinAddress: String,
   }
 
   override def invoke(request: RequestMessage,
-                      maybeName: Option[String],
-                      parentName: Option[String]): Option[String] = {
-    request.tracingInfo.map { _ =>
-      val stackTrace = Thread.currentThread().getStackTrace
-      val name = maybeName.getOrElse {
-        val index = stackTrace.indexWhere(s => s.getClassName == className && s.getMethodName == "withTracing") + 1
-        stackTrace(index).toString
-      }
+                      name: => String,
+                      parentName: => Option[String]): Unit = {
+    if (request.tracingInfo.isDefined) {
       val timestamp = Clock.currentTimeMicroseconds
-      events.put(Invoke(request, name, parentName, stackTrace, timestamp))
 
-      name
+      events.put(Invoke(request, name, parentName, timestamp))
     }
   }
 
-  override def finish(request: RequestMessage, name: String): Unit = {
+  override def finish(request: RequestMessage, name: => String): Unit = {
     if (request.tracingInfo.isDefined) {
       val timestamp = Clock.currentTimeMicroseconds
 
@@ -128,13 +121,6 @@ class AsyncServerTracer(zipkinAddress: String,
   }
 
 
-  private def findParent(request: RequestMessage, stackTrace: Array[StackTraceElement]): Option[String] = {
-    stackTrace.collectFirst {
-      case s if spans.keySet.filter(_._1 == request.id).map(_._2).contains(s.toString) => s.toString
-    }
-  }
-
-
   case class ServerSend(request: RequestMessage, timestamp: Long) extends AsyncTracer.Event {
     override def handle(): Unit = {
       rootSpans.remove(request.id).foreach(_.report(timestamp))
@@ -160,7 +146,7 @@ class AsyncServerTracer(zipkinAddress: String,
       val rootSpan = SpanBuilderWrapper(
         traceId = tracingInfo.traceId.toHexString,
         timestamp = timestamp,
-        name = tracedMethods.getOrElse(request.methodId, "request") + s" (${request.id})")
+        name = tracedMethods.getOrElse(request.methodId, "unknown method"))
       rootSpan.builder.localEndpoint(endpoint)
 
       rootSpans += request.id -> rootSpan
@@ -170,10 +156,9 @@ class AsyncServerTracer(zipkinAddress: String,
   case class Invoke(request: RequestMessage,
                     name: String,
                     parentName: Option[String],
-                    stackTrace: Array[StackTraceElement],
                     timestamp: Long) extends AsyncTracer.Event {
     override def handle(): Unit = {
-      val parentSpan = parentName.orElse(findParent(request, stackTrace))
+      val parentSpan = parentName
         .map(n => spans.get((request.id, n)))
         .getOrElse(rootSpans.get(request.id))
 

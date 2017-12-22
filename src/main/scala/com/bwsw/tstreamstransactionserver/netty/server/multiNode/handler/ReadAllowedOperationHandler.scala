@@ -43,7 +43,7 @@ class ReadAllowedOperationHandler(nextHandler: RequestHandler,
   override def handle(message: RequestMessage,
                       ctx: ChannelHandlerContext,
                       error: Option[Throwable]): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".handle") {
       if (canPerformReadOperation)
         nextHandler.handle(message, ctx, error)
     }

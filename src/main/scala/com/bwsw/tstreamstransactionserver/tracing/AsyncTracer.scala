@@ -23,7 +23,7 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue, TimeUnit}
 
-import com.bwsw.tstreamstransactionserver.netty.Protocol.OpenTransaction
+import com.bwsw.tstreamstransactionserver.netty.Protocol.{OpenTransaction, PutTransactionData}
 import zipkin2.reporter.AsyncReporter
 import zipkin2.reporter.okhttp3.OkHttpSender
 import zipkin2.{Endpoint, Span}
@@ -53,7 +53,8 @@ abstract class AsyncTracer(zipkinAddress: String,
     .build()
 
   protected val tracedMethods: Map[Byte, String] = Set(
-    OpenTransaction)
+    OpenTransaction,
+    PutTransactionData)
     .map(method => method.methodID -> method.name)
     .toMap
 

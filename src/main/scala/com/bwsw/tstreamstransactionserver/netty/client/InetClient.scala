@@ -405,5 +405,6 @@ class InetClient(zookeeperOptions: ZookeeperOptions,
     if (zkConnectionLostListener != null) {
       zkConnectionLostListener.stop()
     }
+    tracer.close()
   }
 }

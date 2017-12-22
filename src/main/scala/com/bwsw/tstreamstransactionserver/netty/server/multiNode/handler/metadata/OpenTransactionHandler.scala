@@ -20,8 +20,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 private object OpenTransactionHandler {
   val descriptor = Protocol.OpenTransaction
-  private val fireAndForgetLedger = s"${classOf[OpenTransactionHandler]}.fireAndForget.ledgerHandler.asyncAddEntry()"
-  private val getResponseLedger = s"${classOf[OpenTransactionHandler]}.getResponse.ledgerHandler.asyncAddEntry()"
+  private val fireAndForgetLedger = s"${classOf[OpenTransactionHandler]}.fireAndForget.ledgerHandler.asyncAddEntry"
+  private val getResponseLedger = s"${classOf[OpenTransactionHandler]}.getResponse.ledgerHandler.asyncAddEntry"
 }
 
 class OpenTransactionHandler(server: TransactionServer,
@@ -50,7 +50,7 @@ class OpenTransactionHandler(server: TransactionServer,
                              entryId: Long,
                              obj: scala.Any): Unit = {
       tracer.finish(message, OpenTransactionHandler.getResponseLedger)
-      tracer.withTracing(message) {
+      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
 
@@ -93,7 +93,7 @@ class OpenTransactionHandler(server: TransactionServer,
                              entryId: Long,
                              obj: scala.Any): Unit = {
       tracer.finish(message, OpenTransactionHandler.fireAndForgetLedger)
-      tracer.withTracing(message) {
+      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
           notifier.notifySubscribers(
@@ -117,14 +117,14 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   override protected def fireAndForget(message: RequestMessage): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".fireAndForget") {
       val args = descriptor.decodeRequest(message.body)
       val context = orderedExecutionPool.pool(args.streamID, args.partition)
 
       def helper(): Future[Boolean] = {
         val promise = Promise[Boolean]()
         Future {
-          tracer.withTracing(message) {
+          tracer.withTracing(message, name = getClass.getName + ".fireAndForget.Future") {
             bookkeeperMaster.doOperationWithCurrentWriteLedger {
               case Left(throwable) =>
                 promise.failure(throwable)
@@ -160,7 +160,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, Some(OpenTransactionHandler.fireAndForgetLedger))
+                tracer.invoke(message, OpenTransactionHandler.fireAndForgetLedger)
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }
@@ -174,14 +174,14 @@ class OpenTransactionHandler(server: TransactionServer,
 
   override protected def getResponse(message: RequestMessage,
                                      ctx: ChannelHandlerContext): (Future[_], ExecutionContext) = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".getResponse") {
       val args = descriptor.decodeRequest(message.body)
       val context = orderedExecutionPool.pool(args.streamID, args.partition)
 
       def helper(): Future[Boolean] = {
         val promise = Promise[Boolean]()
         Future {
-          tracer.withTracing(message) {
+          tracer.withTracing(message, name = getClass.getName + ".getResponse.Future") {
             bookkeeperMaster.doOperationWithCurrentWriteLedger {
               case Left(throwable) =>
                 promise.failure(throwable)
@@ -219,7 +219,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, Some(OpenTransactionHandler.getResponseLedger))
+                tracer.invoke(message, OpenTransactionHandler.getResponseLedger)
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }

@@ -51,10 +51,10 @@ class PutTransactionDataHandler(server: TransactionServer,
   }
 
   override protected def fireAndForget(message: RequestMessage): Unit =
-    tracer.withTracing(message)(process(message))
+    tracer.withTracing(message, name = getClass.getName + ".fireAndForget")(process(message))
 
   private def process(message: RequestMessage) = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".process") {
       val args = descriptor.decodeRequest(message.body)
       server.putTransactionData(
         args.streamID,
@@ -68,7 +68,7 @@ class PutTransactionDataHandler(server: TransactionServer,
 
   override protected def getResponse(message: RequestMessage,
                                      ctx: ChannelHandlerContext): Array[Byte] = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".getResponse") {
       descriptor.encodeResponse(
         TransactionService.PutTransactionData.Result(
           Some(process(message))))

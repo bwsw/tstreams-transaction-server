@@ -13,7 +13,7 @@ abstract class SyncReadHandler(override final val id: Byte,
   override final def handle(message: RequestMessage,
                             ctx: ChannelHandlerContext,
                             acc: Option[Throwable]): Unit = {
-    tracer.withTracing(message) {
+    tracer.withTracing(message, name = getClass.getName + ".handle") {
       if (!message.isFireAndForgetMethod) {
         val response = getResponse(message, ctx, acc)
         sendResponse(message, response, ctx)
