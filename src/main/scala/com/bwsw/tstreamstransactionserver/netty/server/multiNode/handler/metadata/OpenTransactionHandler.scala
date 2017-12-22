@@ -20,8 +20,6 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 private object OpenTransactionHandler {
   val descriptor = Protocol.OpenTransaction
-  private val fireAndForgetLedger = s"${classOf[OpenTransactionHandler]}.fireAndForget.ledgerHandler.asyncAddEntry"
-  private val getResponseLedger = s"${classOf[OpenTransactionHandler]}.getResponse.ledgerHandler.asyncAddEntry"
 }
 
 class OpenTransactionHandler(server: TransactionServer,
@@ -34,6 +32,9 @@ class OpenTransactionHandler(server: TransactionServer,
     descriptor.methodID,
     descriptor.name,
     orderedExecutionPool) {
+
+  private val fireAndForgetLedger = getClass.getName + ".fireAndForget.ledgerHandler.asyncAddEntry"
+  private val getResponseLedger = getClass.getName + ".getResponse.ledgerHandler.asyncAddEntry"
 
   private trait Callback
 
@@ -49,8 +50,8 @@ class OpenTransactionHandler(server: TransactionServer,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
-      tracer.finish(message, OpenTransactionHandler.getResponseLedger)
-      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
+      tracer.finish(message, getResponseLedger)
+      tracer.withTracing(message, getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
 
@@ -92,8 +93,8 @@ class OpenTransactionHandler(server: TransactionServer,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
-      tracer.finish(message, OpenTransactionHandler.fireAndForgetLedger)
-      tracer.withTracing(message, name = getClass.getName + ".addComplete") {
+      tracer.finish(message, fireAndForgetLedger)
+      tracer.withTracing(message, getClass.getName + ".addComplete") {
         val promise = obj.asInstanceOf[Promise[Boolean]]
         if (Code.OK == bkCode) {
           notifier.notifySubscribers(
@@ -117,14 +118,14 @@ class OpenTransactionHandler(server: TransactionServer,
   }
 
   override protected def fireAndForget(message: RequestMessage): Unit = {
-    tracer.withTracing(message, name = getClass.getName + ".fireAndForget") {
+    tracer.withTracing(message, getClass.getName + ".fireAndForget") {
       val args = descriptor.decodeRequest(message.body)
       val context = orderedExecutionPool.pool(args.streamID, args.partition)
 
       def helper(): Future[Boolean] = {
         val promise = Promise[Boolean]()
         Future {
-          tracer.withTracing(message, name = getClass.getName + ".fireAndForget.Future") {
+          tracer.withTracing(message, getClass.getName + ".fireAndForget.Future") {
             bookkeeperMaster.doOperationWithCurrentWriteLedger {
               case Left(throwable) =>
                 promise.failure(throwable)
@@ -160,7 +161,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, OpenTransactionHandler.fireAndForgetLedger)
+                tracer.invoke(message, fireAndForgetLedger)
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }
@@ -174,14 +175,14 @@ class OpenTransactionHandler(server: TransactionServer,
 
   override protected def getResponse(message: RequestMessage,
                                      ctx: ChannelHandlerContext): (Future[_], ExecutionContext) = {
-    tracer.withTracing(message, name = getClass.getName + ".getResponse") {
+    tracer.withTracing(message, getClass.getName + ".getResponse") {
       val args = descriptor.decodeRequest(message.body)
       val context = orderedExecutionPool.pool(args.streamID, args.partition)
 
       def helper(): Future[Boolean] = {
         val promise = Promise[Boolean]()
         Future {
-          tracer.withTracing(message, name = getClass.getName + ".getResponse.Future") {
+          tracer.withTracing(message, getClass.getName + ".getResponse.Future") {
             bookkeeperMaster.doOperationWithCurrentWriteLedger {
               case Left(throwable) =>
                 promise.failure(throwable)
@@ -219,7 +220,7 @@ class OpenTransactionHandler(server: TransactionServer,
                   binaryTransaction
                 ).toByteArray
 
-                tracer.invoke(message, OpenTransactionHandler.getResponseLedger)
+                tracer.invoke(message, getResponseLedger)
                 ledgerHandler.asyncAddEntry(record, callback, promise)
             }
           }

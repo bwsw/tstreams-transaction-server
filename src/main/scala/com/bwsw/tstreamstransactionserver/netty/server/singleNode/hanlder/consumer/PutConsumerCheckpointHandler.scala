@@ -27,8 +27,8 @@ import com.bwsw.tstreamstransactionserver.rpc.{ServerException, TransactionServi
 import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.ExecutionContext
-
 import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.consumer.PutConsumerCheckpointHandler._
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 
 private object PutConsumerCheckpointHandler {
   val descriptor = Protocol.PutConsumerCheckpoint
@@ -52,9 +52,8 @@ class PutConsumerCheckpointHandler(server: TransactionServer,
     )
   }
 
-  override protected def fireAndForget(message: RequestMessage): Unit = {
-    process(message.body)
-  }
+  override protected def fireAndForget(message: RequestMessage): Unit =
+    tracer.withTracing(message, getClass.getName + ".fireAndForget")(process(message.body))
 
   private def process(requestBody: Array[Byte]): Boolean = {
     scheduledCommitLog.putData(
@@ -65,13 +64,16 @@ class PutConsumerCheckpointHandler(server: TransactionServer,
 
   override protected def getResponse(message: RequestMessage,
                                      ctx: ChannelHandlerContext): Array[Byte] = {
-    val result = process(message.body)
+    tracer.withTracing(message, getClass.getName + ".getResponse") {
+      val result = process(message.body)
 
-    val response = descriptor.encodeResponse(
-      TransactionService.PutConsumerCheckpoint.Result(
-        Some(result)
+      val response = descriptor.encodeResponse(
+        TransactionService.PutConsumerCheckpoint.Result(
+          Some(result)
+        )
       )
-    )
-    response
+
+      response
+    }
   }
 }

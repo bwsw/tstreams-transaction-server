@@ -28,6 +28,7 @@ import io.netty.channel.ChannelHandlerContext
 
 import scala.concurrent.ExecutionContext
 import com.bwsw.tstreamstransactionserver.netty.server.singleNode.hanlder.metadata.PutTransactionsHandler._
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 
 private object PutTransactionsHandler {
   val descriptor = Protocol.PutTransactions
@@ -51,26 +52,26 @@ class PutTransactionsHandler(server: TransactionServer,
     descriptor.encodeResponse(
       TransactionService.PutTransactions.Result(
         None,
-        Some(ServerException(message)
-        )
+        Some(ServerException(message))
       )
     )
   }
 
-  override protected def fireAndForget(message: RequestMessage): Unit = {
-    process(message.body)
-  }
+  override protected def fireAndForget(message: RequestMessage): Unit =
+    tracer.withTracing(message, getClass.getName + ".fireAndForget")(process(message.body))
 
   override protected def getResponse(message: RequestMessage, ctx: ChannelHandlerContext): Array[Byte] = {
-    val response = {
-      val isPutted = process(message.body)
-      if (isPutted)
-        isPuttedResponse
-      else
-        isNotPuttedResponse
-    }
+    tracer.withTracing(message, getClass.getName + ".getResponse") {
+      val response = {
+        val isPutted = process(message.body)
+        if (isPutted)
+          isPuttedResponse
+        else
+          isNotPuttedResponse
+      }
 
-    response
+      response
+    }
   }
 
   private def process(requestBody: Array[Byte]) = {

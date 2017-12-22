@@ -7,6 +7,7 @@ import com.bwsw.tstreamstransactionserver.netty.server.multiNode.bookkeperServic
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler.MultiNodePredefinedContextHandler
 import com.bwsw.tstreamstransactionserver.netty.server.multiNode.handler.consumer.PutConsumerCheckpointHandler._
 import com.bwsw.tstreamstransactionserver.rpc.{ServerException, TransactionService}
+import com.bwsw.tstreamstransactionserver.tracing.ServerTracer.tracer
 import org.apache.bookkeeper.client.BKException.Code
 import org.apache.bookkeeper.client.{AsyncCallback, BKException, LedgerHandle}
 
@@ -31,47 +32,52 @@ class PutConsumerCheckpointHandler(bookkeeperMaster: BookkeeperMaster,
     descriptor.name,
     context) {
 
-  private def callback = new AsyncCallback.AddCallback {
+  private val processLedger = getClass.getName + ".process.ledgerHandler.asyncAddEntry"
+
+  private def callback(message: RequestMessage) = new AsyncCallback.AddCallback {
     override def addComplete(bkCode: Int,
                              ledgerHandle: LedgerHandle,
                              entryId: Long,
                              obj: scala.Any): Unit = {
-      val promise = obj.asInstanceOf[Promise[Array[Byte]]]
-      if (Code.OK == bkCode)
-        promise.success(isPuttedResponse)
-      else {
-        promise.failure(BKException.create(bkCode).fillInStackTrace())
+      tracer.finish(message, processLedger)
+      tracer.withTracing(message, getClass.getName + ".addComplete") {
+        val promise = obj.asInstanceOf[Promise[Array[Byte]]]
+        if (Code.OK == bkCode)
+          promise.success(isPuttedResponse)
+        else
+          promise.failure(BKException.create(bkCode).fillInStackTrace())
       }
     }
   }
 
-  private def process(requestBody: Array[Byte]): Future[Array[Byte]] = {
-    val promise = Promise[Array[Byte]]()
-    Future {
-      bookkeeperMaster.doOperationWithCurrentWriteLedger {
-        case Left(throwable) =>
-          promise.failure(throwable)
+  private def process(message: RequestMessage): Future[Array[Byte]] = {
+    tracer.withTracing(message, getClass.getName + ".process") {
+      val promise = Promise[Array[Byte]]()
+      Future {
+        tracer.withTracing(message, getClass.getName + ".process.Future") {
+          bookkeeperMaster.doOperationWithCurrentWriteLedger {
+            case Left(throwable) =>
+              promise.failure(throwable)
 
-        case Right(ledgerHandler) =>
-          val record = new Record(
-            Frame.PutConsumerCheckpointType.id.toByte,
-            System.currentTimeMillis(),
-            requestBody
-          ).toByteArray
+            case Right(ledgerHandler) =>
+              val record = new Record(
+                Frame.PutConsumerCheckpointType.id.toByte,
+                System.currentTimeMillis(),
+                message.body
+              ).toByteArray
 
-          ledgerHandler.asyncAddEntry(record, callback, promise)
-      }
-    }(context)
-    promise.future
+              tracer.invoke(message, processLedger)
+              ledgerHandler.asyncAddEntry(record, callback(message), promise)
+          }
+        }
+      }(context)
+      promise.future
+    }
   }
 
-  override protected def fireAndForget(message: RequestMessage): Unit = {
-    process(message.body)
-  }
+  override protected def fireAndForget(message: RequestMessage): Unit = process(message)
 
-  override protected def getResponse(message: RequestMessage): Future[Array[Byte]] = {
-    process(message.body)
-  }
+  override protected def getResponse(message: RequestMessage): Future[Array[Byte]] = process(message)
 
 
   override def createErrorResponse(message: String): Array[Byte] = {
