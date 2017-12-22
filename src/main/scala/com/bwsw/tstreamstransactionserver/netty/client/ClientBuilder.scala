@@ -50,7 +50,7 @@ class ClientBuilder private(authOpts: AuthOptions,
   def withConnectionOptions(clientOptions: ConnectionOptions) =
     new ClientBuilder(authOptions, zookeeperOptions, clientOptions, curator, tracingOptions)
 
-  def withTracingOpts(tracingOptions: TracingOptions) =
+  def withTracingOptions(tracingOptions: TracingOptions) =
     new ClientBuilder(authOptions, zookeeperOptions, connectionOptions, curator, tracingOptions)
 
   def build() =
@@ -62,5 +62,5 @@ class ClientBuilder private(authOpts: AuthOptions,
 
   def getAuthOptions: AuthOptions = authOptions.copy()
 
-  def getTracingOtrions: TracingOptions = tracingOptions
+  def getTracingOptions: TracingOptions = tracingOptions
 }
